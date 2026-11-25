@@ -5,6 +5,7 @@ import 'package:raven23/provider/app_dependency_provider.dart';
 import 'package:raven23/provider/offline_download_provider.dart';
 import 'package:raven23/provider/recently_watched_provider.dart';
 import 'package:raven23/provider/settings_provider.dart';
+import 'package:raven23/provider/wellness_provider.dart';
 
 import 'screens/library_screen.dart';
 
@@ -35,6 +36,9 @@ class Raven23PlayerApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<OfflineDownloadProvider>(
           create: (_) => OfflineDownloadProvider(),
+        ),
+        ChangeNotifierProvider<WellnessProvider>.value(
+          value: WellnessProvider.instance,
         ),
       ],
       child: EasyLocalization(

@@ -66,6 +66,7 @@ class MediaItem {
     required this.subtitles,
     this.path,
     this.mediaType,
+    this.subtitle,
     this.contentId,
     this.episodeId,
     this.seasonNumber,
@@ -90,6 +91,7 @@ class MediaItem {
   final List<MediaSubtitle> subtitles;
   final String? path;
   final String? mediaType;
+  final String? subtitle;
   final int? contentId;
   final int? episodeId;
   final int? seasonNumber;
@@ -208,6 +210,7 @@ class MediaItem {
       dateAddedSeconds: createdAtSeconds,
       subtitles: subtitles,
       mediaType: row['mediaType']?.toString(),
+      subtitle: _nonEmpty(payload['subtitle']?.toString()),
       contentId: (row['contentId'] as num?)?.toInt(),
       seasonNumber: (row['seasonNumber'] as num?)?.toInt(),
       episodeNumber: (row['episodeNumber'] as num?)?.toInt(),

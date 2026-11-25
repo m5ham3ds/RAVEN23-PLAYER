@@ -23,7 +23,7 @@ void main() {
         'durationMs': 2400000,
         'sizeBytes': 2048,
         'isPlayable': true,
-        'downloadDataJson': '{"title":"Episode 4","streamIdentity":{"source":"offline"}}',
+        'downloadDataJson': '{"title":"Episode 4","subtitle":"S02 • E04 First Light • Server","streamIdentity":{"source":"offline"}}',
       });
 
       expect(item.origin, MediaOrigin.raven23Download);
@@ -32,6 +32,7 @@ void main() {
       expect(item.subtitles, hasLength(1));
       expect(item.subtitles.single.language, 'ar');
       expect(item.mediaType, 'tv');
+      expect(item.subtitle, 'S02 • E04 First Light • Server');
       expect(item.contentId, 77);
       expect(item.dateAddedSeconds, 1795651200);
       expect(item.isAccountMedia, isFalse);

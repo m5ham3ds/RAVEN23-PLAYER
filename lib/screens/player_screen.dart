@@ -41,6 +41,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   OfflineDownload? _offlineDownload;
   List<BetterPlayerSubtitlesSource> _subtitles =
       const <BetterPlayerSubtitlesSource>[];
+  List<MediaItem> _seriesDownloads = const <MediaItem>[];
 
   bool get _isPrimaryDownload =>
       widget.item.origin == MediaOrigin.raven23Download;
@@ -82,6 +83,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _offlineDownload = OfflineDownload.fromMap(
           Map<Object?, Object?>.from(widget.item.sourceData),
         );
+        final allDownloads = await _library.scanPrimaryDownloads();
+        _seriesDownloads = allDownloads.where((download) {
+          if (!download.isPrimaryDownload || download.mediaType == 'movie') {
+            return false;
+          }
+          if (widget.item.contentId == null) {
+            return download.id == widget.item.id;
+          }
+          return download.contentId == widget.item.contentId;
+        }).toList()
+          ..sort((a, b) {
+            final season = (a.seasonNumber ?? 0)
+                .compareTo(b.seasonNumber ?? 0);
+            if (season != 0) return season;
+            return (a.episodeNumber ?? 0)
+                .compareTo(b.episodeNumber ?? 0);
+          });
+        if (!_seriesDownloads.any((item) => item.id == widget.item.id)) {
+          _seriesDownloads = <MediaItem>[..._seriesDownloads, widget.item];
+        }
         if (!await File(_offlineFilePath!).exists()) {
           throw StateError('The prepared offline video file is missing.');
         }
@@ -143,42 +164,157 @@ class _PlayerScreenState extends State<PlayerScreen> {
             : null,
       );
 
-  TVStreamMetadata _tvMetadata() {
-    final episodeNumber = widget.item.episodeNumber ?? 1;
-    final seasonNumber = widget.item.seasonNumber ?? 1;
-    final episodeName = widget.item.title;
-    final runtime = widget.item.durationMs > 0
-        ? (widget.item.durationMs / Duration.millisecondsPerMinute).round()
-        : null;
-    final episode = EpisodeMetadata(
-      episodeId: widget.item.episodeId ?? episodeNumber,
-      episodeName: episodeName,
-      episodeNumber: episodeNumber,
-      seasonNumber: seasonNumber,
-      stillPath: widget.item.backdropPath ?? widget.item.posterPath,
+  List<Map<String, Object?>> _metadataRows(Object? raw) {
+    if (raw is! List) return const <Map<String, Object?>>[];
+    return raw.whereType<Map>().map((row) {
+      return <String, Object?>{
+        for (final entry in row.entries)
+          entry.key.toString(): entry.value,
+      };
+    }).toList(growable: false);
+  }
+
+  int? _intValue(Map<String, Object?>? row, String key) {
+    final value = row?[key];
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  num? _numValue(Map<String, Object?>? row, String key) {
+    final value = row?[key];
+    if (value is num) return value;
+    return num.tryParse(value?.toString() ?? '');
+  }
+
+  String? _stringValue(Map<String, Object?>? row, String key) =>
+      row?[key]?.toString();
+
+  String? _fallbackEpisodeName(MediaItem item) {
+    final raw = item.sourceData['subtitle']?.toString() ?? '';
+    final parts = raw.split(' • ');
+    if (parts.length < 2) return null;
+    final name = parts[1].replaceFirst(RegExp(r'^E\d+\s*'), '').trim();
+    return name.isEmpty ? null : name;
+  }
+
+  EpisodeMetadata _episodeMetadata(MediaItem item) {
+    final number = item.episodeNumber ?? 0;
+    final season = item.seasonNumber ?? 0;
+    final matchingRows = _metadataRows(item.sourceData['seasonEpisodes']).where(
+      (row) =>
+          _intValue(row, 'episodeNumber') == number &&
+          _intValue(row, 'seasonNumber') == season,
+    );
+    final row = matchingRows.isEmpty ? null : matchingRows.first;
+    final savedName = _stringValue(row, 'episodeName')?.trim();
+    final runtime = _intValue(row, 'runtime') ??
+        (item.durationMs > 0
+            ? (item.durationMs / Duration.millisecondsPerMinute).round()
+            : null);
+    return EpisodeMetadata(
+      episodeId: _intValue(row, 'episodeId') ?? item.episodeId ?? number,
+      episodeName: savedName?.isNotEmpty == true
+          ? savedName!
+          : (_fallbackEpisodeName(item) ?? 'Episode $number'),
+      episodeNumber: number,
+      seasonNumber: season,
+      stillPath: _stringValue(row, 'stillPath') ??
+          item.backdropPath ??
+          item.posterPath,
+      airDate: _stringValue(row, 'airDate'),
       runtime: runtime,
+      overview: _stringValue(row, 'overview'),
+      voteAverage: _numValue(row, 'voteAverage'),
     );
-    final season = SeasonMetadata(
-      seasonNumber: seasonNumber,
-      seasonName: 'Season $seasonNumber',
-      episodeCount: 1,
-      posterPath: widget.item.posterPath,
-      overview: null,
-    );
-    return TVStreamMetadata(
+  }
+
+  List<MediaItem> _seasonDownloads(int seasonNumber) => _seriesDownloads
+      .where((item) => (item.seasonNumber ?? 0) == seasonNumber)
+      .toList(growable: false);
+
+  TVStreamMetadata _tvMetadata() {
+    final seasonNumber = widget.item.seasonNumber ?? 0;
+    final downloadedSeries = _seriesDownloads.isEmpty
+        ? <MediaItem>[widget.item]
+        : _seriesDownloads;
+    final seasonItems = _seasonDownloads(seasonNumber);
+    final mappedEpisodes = (seasonItems.isEmpty
+            ? <MediaItem>[widget.item]
+            : seasonItems)
+        .where((item) => item.episodeNumber != null)
+        .map(_episodeMetadata)
+        .toList(growable: false);
+
+    final seasonNumbers = downloadedSeries
+        .map((item) => item.seasonNumber ?? 0)
+        .toSet()
+        .toList()
+      ..sort();
+    final allSeasons = seasonNumbers.map((season) {
+      final sample = downloadedSeries.firstWhere(
+        (item) => (item.seasonNumber ?? 0) == season,
+      );
+      final matchingRows = _metadataRows(sample.sourceData['allSeasons'])
+          .where((entry) => _intValue(entry, 'seasonNumber') == season);
+      final row = matchingRows.isEmpty ? null : matchingRows.first;
+      return SeasonMetadata(
+        seasonNumber: season,
+        seasonName: _stringValue(row, 'seasonName') ?? 'Season $season',
+        episodeCount: _seasonDownloads(season).length,
+        posterPath: _stringValue(row, 'posterPath') ?? sample.posterPath,
+        overview: _stringValue(row, 'overview'),
+      );
+    }).toList(growable: false);
+
+    final currentEpisode = _episodeMetadata(widget.item);
+    final metadata = TVStreamMetadata(
       elapsed: widget.initialPositionMs ~/ 1000,
-      episodeId: episode.episodeId,
-      episodeName: episodeName,
-      episodeNumber: episodeNumber,
+      episodeId: currentEpisode.episodeId,
+      episodeName: currentEpisode.episodeName,
+      episodeNumber: currentEpisode.episodeNumber,
       posterPath: widget.item.posterPath,
       seasonNumber: seasonNumber,
       seriesName: widget.item.title,
       tvId: widget.item.contentId,
-      airDate: null,
-      episodeRuntime: runtime,
+      airDate: currentEpisode.airDate,
+      episodeRuntime: currentEpisode.runtime,
       backdropPath: widget.item.backdropPath,
-      seasonEpisodes: <EpisodeMetadata>[episode],
-      allSeasons: <SeasonMetadata>[season],
+      seasonEpisodes: mappedEpisodes,
+      allSeasons: allSeasons,
+    );
+    metadata.onSeasonChange = (requestedSeason) {
+      metadata.seasonEpisodes = _seasonDownloads(requestedSeason)
+          .where((item) => item.episodeNumber != null)
+          .map(_episodeMetadata)
+          .toList(growable: false);
+    };
+    return metadata;
+  }
+
+  Future<void> _playDownloadedEpisode(EpisodeMetadata episode) async {
+    final target = _seriesDownloads.where((item) {
+      return item.isPlayable &&
+          item.seasonNumber == episode.seasonNumber &&
+          item.episodeNumber == episode.episodeNumber;
+    }).firstOrNull;
+    if (target == null) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('This episode is no longer available offline.'),
+        ),
+      );
+      return;
+    }
+    final saved = await widget.progressStore.read(target);
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PlayerScreen(
+          item: target,
+          progressStore: widget.progressStore,
+          initialPositionMs: saved?.positionMs ?? 0,
+        ),
+      ),
     );
   }
 
@@ -315,6 +451,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       initialStreamUrl: _isPrimaryDownload ? null : sourceUri,
       offlineDownload: _offlineDownload,
       offlineFilePath: _offlineFilePath,
+      onOfflineEpisodeSelected:
+          isTv && _isPrimaryDownload ? _playDownloadedEpisode : null,
     );
   }
 }
