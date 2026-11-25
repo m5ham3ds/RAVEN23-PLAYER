@@ -2,7 +2,6 @@ name: Android CI
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: raven23-player-android
+  group: raven23-player-android-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -76,8 +75,10 @@ jobs:
           test -s gradle/wrapper/gradle-wrapper.properties
           chmod +x gradlew
 
-      - name: Check Dart formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Format Dart sources
+        run: |
+          dart format lib test
+          dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze
         run: flutter analyze --no-pub
@@ -85,13 +86,59 @@ jobs:
       - name: Unit tests
         run: flutter test --no-pub --reporter expanded
 
-      - name: Build ARM64 release APK
-        run: flutter build apk --release --target-platform android-arm64 --no-pub
+      - name: Build installable ARM64 APK
+        id: apk
+        shell: bash
+        env:
+          RAVEN23_KEYSTORE_BASE64: ${{ secrets.RAVEN23_KEYSTORE_BASE64 }}
+          RAVEN23_KEYSTORE_PASSWORD: ${{ secrets.RAVEN23_KEYSTORE_PASSWORD }}
+          RAVEN23_KEY_ALIAS: ${{ secrets.RAVEN23_KEY_ALIAS }}
+          RAVEN23_KEY_PASSWORD: ${{ secrets.RAVEN23_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          present=0
+          for value in "$RAVEN23_KEYSTORE_BASE64" "$RAVEN23_KEYSTORE_PASSWORD" "$RAVEN23_KEY_ALIAS" "$RAVEN23_KEY_PASSWORD"; do
+            if [[ -n "$value" ]]; then
+              present=$((present + 1))
+            fi
+          done
 
-      - name: Upload APK
+          if [[ "$present" -eq 4 ]]; then
+            keystore="$RUNNER_TEMP/raven23-player-release.jks"
+            printf '%s' "$RAVEN23_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+            test -s "$keystore"
+            export RAVEN23_KEYSTORE_PATH="$keystore"
+            flutter build apk --release --target-platform android-arm64 --no-pub
+            apk_path="build/app/outputs/flutter-apk/app-release.apk"
+            build_kind="release"
+          elif [[ "$present" -eq 0 ]]; then
+            echo "::notice::No release keystore secrets configured; building an installable debug-signed preview APK."
+            flutter build apk --debug --target-platform android-arm64 --no-pub
+            apk_path="build/app/outputs/flutter-apk/app-debug.apk"
+            build_kind="debug"
+          else
+            echo "::error::Release signing secrets are incomplete. Configure all four RAVEN23 signing secrets or remove all four to build a debug preview."
+            exit 1
+          fi
+
+          test -s "$apk_path"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk_path"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk_path" | grep -F "package: name='com.m5ham3ds.raven23.player'"
+          archive_entries="$(unzip -Z1 "$apk_path")"
+          case "$archive_entries" in
+            *"lib/arm64-v8a/libflutter.so"*) ;;
+            *)
+              echo "::error::The APK does not contain the ARM64 Flutter runtime."
+              exit 1
+              ;;
+          esac
+          echo "apk_path=$apk_path" >> "$GITHUB_OUTPUT"
+          echo "build_kind=$build_kind" >> "$GITHUB_OUTPUT"
+
+      - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: raven23-player-arm64-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: raven23-player-arm64-${{ steps.apk.outputs.build_kind }}-apk
+          path: ${{ steps.apk.outputs.apk_path }}
           if-no-files-found: error
           retention-days: 14

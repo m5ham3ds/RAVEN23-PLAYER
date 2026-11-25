@@ -1,6 +1,12 @@
 package com.m5ham3ds.raven23.player
 
 import android.content.ContentUris
+import android.database.Cursor
+import android.graphics.Bitmap
+import android.os.CancellationSignal
+import android.util.Size
+import android.util.Log
+import java.io.ByteArrayOutputStream
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -22,6 +28,24 @@ class MainActivity : FlutterActivity() {
                 try {
                     when (call.method) {
                         "listVideos" -> result.success(scanMediaLibrary())
+                        "listRaven23Downloads" -> result.success(queryRaven23Downloads())
+                        "getVideoThumbnail" -> result.success(getVideoThumbnail(call.argument<String>("uri")))
+                        "cachePlaybackUri" -> {
+                            val rawUri = call.argument<String>("uri")
+                            if (rawUri.isNullOrBlank()) {
+                                result.error("INVALID_URI", "Playback URI is required.", null)
+                            } else {
+                                result.success(copyUriToCache(Uri.parse(rawUri), call.argument<String>("preferredName"), "playback").absolutePath)
+                            }
+                        }
+                        "deletePlaybackCache" -> {
+                            val path = call.argument<String>("path")
+                            if (path.isNullOrBlank()) {
+                                result.success(false)
+                            } else {
+                                result.success(deletePlaybackCache(path))
+                            }
+                        }
                         "cacheSubtitle" -> {
                             val rawUri = call.argument<String>("uri")
                             if (rawUri.isNullOrBlank()) {
@@ -58,6 +82,100 @@ class MainActivity : FlutterActivity() {
                     result.error("MEDIA_LIBRARY_ERROR", error.message, null)
                 }
             }
+    }
+
+    /**
+     * Reads completed private downloads from the companion-only RAVEN23
+     * ContentProvider. Missing/uninstalled primary app and permission denial
+     * are normal states for a standalone Player and never block device videos.
+     */
+    private fun queryRaven23Downloads(): List<Map<String, Any?>> {
+        val downloadsUri = Uri.parse(
+            "content://com.m5ham3d.raven23.offline-library/downloads",
+        )
+        val columns = arrayOf(
+            "id", "title", "mediaType", "quality", "state", "progress",
+            "bytesDownloaded", "contentLength", "createdAt", "contentId",
+            "seasonNumber", "episodeNumber", "posterUrl", "seriesPosterPath",
+            "seriesBackdropPath", "expectedDurationMs", "subtitleStatus",
+            "subtitleUri", "subtitleName", "videoUri", "durationMs",
+            "sizeBytes", "isPlayable", "downloadDataJson",
+        )
+        val rows = mutableListOf<Map<String, Any?>>()
+        return try {
+            contentResolver.query(downloadsUri, columns, null, null, "createdAt DESC")
+                ?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val row = cursor.toSafeMap(columns)
+                        // Only completed downloads are shown as playable library
+                        // media. Active/failed downloads remain managed by RAVEN23.
+                        if (row["state"]?.toString() != "completed" ||
+                            row["videoUri"].toString().isBlank()) {
+                            continue
+                        }
+                        rows.add(row)
+                    }
+                }
+            rows
+        } catch (error: Exception) {
+            Log.i("RAVEN23Player", "Primary-app offline library unavailable: ${error.javaClass.simpleName}")
+            emptyList()
+        }
+    }
+
+    private fun Cursor.toSafeMap(columns: Array<String>): Map<String, Any?> {
+        val values = linkedMapOf<String, Any?>()
+        columns.forEach { name ->
+            val index = getColumnIndex(name)
+            if (index < 0 || isNull(index)) {
+                values[name] = null
+            } else {
+                values[name] = when (getType(index)) {
+                    Cursor.FIELD_TYPE_INTEGER -> getLong(index)
+                    Cursor.FIELD_TYPE_FLOAT -> getDouble(index)
+                    Cursor.FIELD_TYPE_STRING -> getString(index)
+                    else -> null
+                }
+            }
+        }
+        return values
+    }
+
+    private fun getVideoThumbnail(rawUri: String?): ByteArray? {
+        if (rawUri.isNullOrBlank()) return null
+        val uri = Uri.parse(rawUri)
+        if (uri.scheme != "content") return null
+        return try {
+            val bitmap = if (android.os.Build.VERSION.SDK_INT >= 29) {
+                contentResolver.loadThumbnail(uri, Size(480, 270), CancellationSignal())
+            } else {
+                val retriever = android.media.MediaMetadataRetriever()
+                try {
+                    contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                        retriever.setDataSource(descriptor.fileDescriptor)
+                        retriever.getFrameAtTime(1_000_000L)
+                    }
+                } finally {
+                    retriever.release()
+                }
+            } ?: return null
+            ByteArrayOutputStream().use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 84, output)
+                bitmap.recycle()
+                output.toByteArray()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun deletePlaybackCache(rawPath: String): Boolean {
+        val playbackDirectory = File(cacheDir, "raven23-player/playback").canonicalFile
+        val target = File(rawPath).canonicalFile
+        if (target.parentFile != playbackDirectory) {
+            throw SecurityException("Only temporary RAVEN23 Player playback files can be deleted.")
+        }
+        return !target.exists() || target.delete()
     }
 
     private fun scanMediaLibrary(): Map<String, Any> {

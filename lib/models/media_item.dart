@@ -1,6 +1,8 @@
+import 'dart:convert';
+
 import 'package:path/path.dart' as p;
 
-enum MediaOrigin { raven23Library, deviceLocal }
+enum MediaOrigin { raven23Library, raven23Download, deviceLocal }
 
 class MediaSubtitle {
   const MediaSubtitle({
@@ -17,6 +19,9 @@ class MediaSubtitle {
   final String format;
   final String? path;
 
+  static String? _nonEmpty(String? value) =>
+      value == null || value.trim().isEmpty ? null : value.trim();
+
   factory MediaSubtitle.fromMap(Map<Object?, Object?> map) {
     final name = map['displayName']?.toString() ?? 'Subtitle';
     final extension = p.extension(name).replaceFirst('.', '').toLowerCase();
@@ -26,6 +31,19 @@ class MediaSubtitle {
       contentUri: map['uri']?.toString() ?? '',
       language: _languageFromName(name),
       format: extension,
+    );
+  }
+
+  factory MediaSubtitle.fromPrimaryDownload({
+    required String displayName,
+    required String contentUri,
+  }) {
+    final extension = p.extension(displayName).replaceFirst('.', '').toLowerCase();
+    return MediaSubtitle(
+      displayName: displayName,
+      contentUri: contentUri,
+      language: _languageFromName(displayName),
+      format: extension.isEmpty ? 'vtt' : extension,
     );
   }
 
@@ -54,6 +72,11 @@ class MediaItem {
     this.episodeNumber,
     this.posterPath,
     this.backdropPath,
+    this.posterUrl,
+    this.downloadState,
+    this.downloadProgress,
+    this.sourceData = const <String, Object?>{},
+    this.isPlayable = true,
   });
 
   final String id;
@@ -66,8 +89,6 @@ class MediaItem {
   final int dateAddedSeconds;
   final List<MediaSubtitle> subtitles;
   final String? path;
-
-  // These fields are populated only after Phase 01 validates the RAVEN manifest.
   final String? mediaType;
   final int? contentId;
   final int? episodeId;
@@ -75,11 +96,18 @@ class MediaItem {
   final int? episodeNumber;
   final String? posterPath;
   final String? backdropPath;
+  final String? posterUrl;
+  final String? downloadState;
+  final double? downloadProgress;
+  final Map<String, Object?> sourceData;
+  final bool isPlayable;
 
   bool get isAccountMedia =>
       origin == MediaOrigin.raven23Library &&
       contentId != null &&
       (mediaType == 'movie' || (mediaType == 'tv' && episodeId != null));
+
+  bool get isPrimaryDownload => origin == MediaOrigin.raven23Download;
 
   String get formattedDuration {
     final totalMinutes = durationMs ~/ Duration.millisecondsPerMinute;
@@ -108,7 +136,7 @@ class MediaItem {
       return sameFolder &&
           (subtitleStem == stem ||
               subtitleStem.startsWith('$stem.') ||
-              subtitleStem.startsWith('$stem' + '_') ||
+              subtitleStem.startsWith('${stem}_') ||
               subtitleStem.startsWith('$stem-'));
     }).map(MediaSubtitle.fromMap).toList(growable: false)
       ..sort((a, b) => a.language.compareTo(b.language));
@@ -126,6 +154,71 @@ class MediaItem {
       sizeBytes: (video['sizeBytes'] as num?)?.toInt() ?? 0,
       dateAddedSeconds: (video['dateAddedSeconds'] as num?)?.toInt() ?? 0,
       subtitles: matchingSubtitles,
+    );
+  }
+
+  factory MediaItem.fromPrimaryDownload(Map<Object?, Object?> row) {
+    Map<String, Object?> payload = <String, Object?>{};
+    final raw = row['downloadDataJson'];
+    if (raw is String && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          payload = <String, Object?>{
+            for (final entry in decoded.entries)
+              entry.key.toString(): entry.value,
+          };
+        }
+      } catch (_) {
+        payload = <String, Object?>{};
+      }
+    }
+
+    final title = row['title']?.toString().trim();
+    final subtitleUri = row['subtitleUri']?.toString() ?? '';
+    final subtitleName = row['subtitleName']?.toString() ?? '';
+    final subtitles = subtitleUri.isEmpty
+        ? const <MediaSubtitle>[]
+        : <MediaSubtitle>[
+            MediaSubtitle.fromPrimaryDownload(
+              displayName: subtitleName.isEmpty ? 'subtitle.vtt' : subtitleName,
+              contentUri: subtitleUri,
+            ),
+          ];
+    final createdAt = (row['createdAt'] as num?)?.toInt() ?? 0;
+    final createdAtSeconds = createdAt > 1000000000000
+        ? createdAt ~/ 1000
+        : createdAt;
+    final posterUrl = _nonEmpty(row['posterUrl']?.toString());
+    final posterPath = _nonEmpty(row['seriesPosterPath']?.toString());
+    final backdropPath = _nonEmpty(row['seriesBackdropPath']?.toString());
+
+    return MediaItem(
+      id: 'raven23-offline:${row['id']?.toString() ?? ''}',
+      title: title?.isNotEmpty == true
+          ? title!
+          : (payload['title']?.toString() ?? 'RAVEN23 video'),
+      origin: MediaOrigin.raven23Download,
+      contentUri: row['videoUri']?.toString() ?? '',
+      relativePath: 'RAVEN23 Downloads',
+      durationMs: (row['durationMs'] as num?)?.toInt() ??
+          (row['expectedDurationMs'] as num?)?.toInt() ?? 0,
+      sizeBytes: (row['sizeBytes'] as num?)?.toInt() ??
+          (row['bytesDownloaded'] as num?)?.toInt() ?? 0,
+      dateAddedSeconds: createdAtSeconds,
+      subtitles: subtitles,
+      mediaType: row['mediaType']?.toString(),
+      contentId: (row['contentId'] as num?)?.toInt(),
+      seasonNumber: (row['seasonNumber'] as num?)?.toInt(),
+      episodeNumber: (row['episodeNumber'] as num?)?.toInt(),
+      posterUrl: posterUrl,
+      posterPath: posterPath,
+      backdropPath: backdropPath,
+      downloadState: row['state']?.toString(),
+      downloadProgress: (row['progress'] as num?)?.toDouble(),
+      sourceData: payload,
+      isPlayable: row['isPlayable'] == true &&
+          row['videoUri']?.toString().startsWith('content://') == true,
     );
   }
 
