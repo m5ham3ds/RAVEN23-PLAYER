@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -1029,7 +1031,7 @@ class _ContinueCard extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 12,
                 fontWeight: FontWeight.w700)),
           const SizedBox(height: 3),
-          Text('\${(fraction * 100).round()}% watched',
+          Text('${(fraction * 100).round()}% watched',
             style: const TextStyle(color: Colors.white54, fontSize: 10)),
         ]),
       )),
@@ -1207,9 +1209,9 @@ class _VideoTile extends StatelessWidget {
                     _Metadata(icon: Icons.play_circle_outline_rounded,
                         text: item.formattedDuration),
                     _Metadata(icon: Icons.storage_rounded,
-                        text: '\${sizeMb.toStringAsFixed(0)} MB'),
+                        text: '${sizeMb.toStringAsFixed(0)} MB'),
                     _Metadata(icon: Icons.subtitles_outlined,
-                        text: '\${item.subtitles.length} subtitle(s)'),
+                        text: '${item.subtitles.length} subtitle(s)'),
                   ]),
                   const SizedBox(height: 5),
                   Text(
@@ -1304,7 +1306,7 @@ class _GridVideo extends StatelessWidget {
             Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
             const SizedBox(height: 5),
-            Text('\${item.formattedDuration}  •  \${item.subtitles.length} subtitles',
+            Text('${item.formattedDuration}  •  ${item.subtitles.length} subtitles',
               maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: Colors.white54, fontSize: 10)),
           ]),
