@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,6 +9,7 @@ import '../models/media_item.dart';
 import '../services/android_media_library.dart';
 import '../services/playback_progress_store.dart';
 import '../services/transfer_service.dart';
+import '../widgets/app_press_feedback.dart';
 import 'player_screen.dart';
 
 enum LibraryFilter { all, raven23, device }
@@ -19,7 +21,8 @@ class LibraryScreen extends StatefulWidget {
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> {
+class _LibraryScreenState extends State<LibraryScreen>
+    with SingleTickerProviderStateMixin {
   final AndroidMediaLibrary _library = AndroidMediaLibrary();
   late final TransferService _transfer = TransferService(_library);
   final TextEditingController _search = TextEditingController();
@@ -32,10 +35,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
   bool _grid = false;
   String _query = '';
   String? _error;
+  late final AnimationController _fadeController;
+  final Set<int> _builtTabs = <int>{0};
+  bool _drawerOpen = false;
 
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      value: 1,
+    );
     _load = _initialise();
     _recentLoad = _load!.then(_loadRecent);
     _search.addListener(() {
@@ -46,6 +57,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     _search.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -68,7 +80,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return const [];
     }
     try {
-      final items = await _library.scanVideos();
+      final localVideos = await _library.scanVideos();
+      final primaryDownloads = await _library.scanPrimaryDownloads();
+      final byId = <String, MediaItem>{
+        for (final item in localVideos) item.id: item,
+        for (final item in primaryDownloads) item.id: item,
+      };
+      final items = byId.values.toList()
+        ..sort((a, b) => b.dateAddedSeconds.compareTo(a.dateAddedSeconds));
       if (mounted) setState(() => _error = null);
       return items;
     } catch (error) {
@@ -113,7 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final query = _query.toLowerCase();
     final items = source.where((item) {
       if (_filter == LibraryFilter.raven23 &&
-          item.origin != MediaOrigin.raven23Library) {
+          item.origin == MediaOrigin.deviceLocal) {
         return false;
       }
       if (_filter == LibraryFilter.device &&
@@ -159,7 +178,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
       _searching = false;
       _search.clear();
     }
-    setState(() => _tab = value);
+    if (_tab == value) return;
+    setState(() {
+      _tab = value;
+      _builtTabs.add(value);
+    });
+    _fadeController.forward(from: 0);
   }
 
   Future<void> _playFeatured() async {
@@ -179,7 +203,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     setState(() {
       _searching = true;
       _tab = 1;
+      _builtTabs.add(1);
     });
+    _fadeController.forward(from: 0);
   }
 
   void _endSearch() {
@@ -204,6 +230,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: _drawer(),
+      onDrawerChanged: (open) {
+        if (_drawerOpen != open && mounted) {
+          setState(() => _drawerOpen = open);
+        }
+      },
       appBar: AppBar(
         toolbarHeight: 62,
         leadingWidth: 52,
@@ -273,18 +304,58 @@ class _LibraryScreenState extends State<LibraryScreen> {
             );
           }
           final videos = snapshot.data ?? const <MediaItem>[];
-          if (_tab == 1) return _collection(videos, 'All Videos');
-          if (_tab == 3) return _collection(videos, 'Video Library');
-          if (_tab == 4) return _settings(videos);
-          return _home(videos);
+          return PopScope(
+            canPop: _drawerOpen || _tab == 0,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop || _drawerOpen) return;
+              if (_tab != 0) _selectTab(0);
+            },
+            child: _tabStack(videos),
+          );
         },
       ),
       bottomNavigationBar: _BottomBar(selected: _tab, onSelect: _selectTab),
     );
   }
 
+  Widget _tabStack(List<MediaItem> videos) => Stack(
+        fit: StackFit.expand,
+        children: [
+          for (final tab in const [0, 1, 3, 4])
+            if (_builtTabs.contains(tab))
+              Offstage(
+                offstage: tab != _tab,
+                child: TickerMode(
+                  enabled: tab == _tab,
+                  child: ColoredBox(
+                    color: Raven23PlayerApp.background,
+                    child: FadeTransition(
+                      opacity: tab == _tab
+                          ? _fadeController
+                          : kAlwaysCompleteAnimation,
+                      child: RepaintBoundary(
+                        child: switch (tab) {
+                          1 => _collection(videos, 'All Videos'),
+                          3 => _collection(videos, 'Video Library'),
+                          4 => _settings(videos),
+                          _ => _home(videos),
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+        ],
+      );
+
+  void _selectFilterTab(LibraryFilter filter) {
+    setState(() => _filter = filter);
+    _selectTab(3);
+  }
+
   Widget _home(List<MediaItem> videos) {
-    final raven = videos.where((v) => v.origin == MediaOrigin.raven23Library).length;
+    final raven = videos.where((v) => v.origin == MediaOrigin.raven23Library ||
+        v.origin == MediaOrigin.raven23Download).length;
     final device = videos.where((v) => v.origin == MediaOrigin.deviceLocal).length;
     return RefreshIndicator(
       color: Raven23PlayerApp.ravenRed,
@@ -312,20 +383,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   icon: Icons.folder_outlined,
                   label: 'On Device',
                   value: _count(device),
-                  onTap: () => setState(() {
-                    _filter = LibraryFilter.device;
-                    _tab = 3;
-                  }),
+                  onTap: () => _selectFilterTab(LibraryFilter.device),
                 ),
                 const SizedBox(width: 9),
                 _Stat(
                   icon: Icons.layers_rounded,
                   label: 'RAVEN23',
                   value: _count(raven),
-                  onTap: () => setState(() {
-                    _filter = LibraryFilter.raven23;
-                    _tab = 3;
-                  }),
+                  onTap: () => _selectFilterTab(LibraryFilter.raven23),
                 ),
                 const SizedBox(width: 9),
                 FutureBuilder<List<_RecentMedia>>(
@@ -386,7 +451,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _collection(List<MediaItem> videos, String title) {
     final items = _filtered(videos);
-    final raven = videos.where((v) => v.origin == MediaOrigin.raven23Library).length;
+    final raven = videos.where((v) => v.origin == MediaOrigin.raven23Library ||
+        v.origin == MediaOrigin.raven23Download).length;
     final device = videos.where((v) => v.origin == MediaOrigin.deviceLocal).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,7 +518,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   message: _query.isNotEmpty
                       ? 'Try another title or clear your search.'
                       : _filter == LibraryFilter.raven23
-                          ? 'RAVEN23 shared downloads will appear here when the main app publishes the shared library.'
+                          ? 'RAVEN23 downloads and shared library items appear here, including downloads not exported to public storage.'
                           : 'Videos stored on this device will appear here.',
                   onRefresh: _query.isNotEmpty ? _endSearch : _refresh,
                 )
