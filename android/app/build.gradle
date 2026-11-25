@@ -43,7 +43,7 @@ android {
         applicationId "com.m5ham3ds.raven23.player"
         minSdk flutter.minSdkVersion
         targetSdk 36
-        versionCode (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
         versionName "0.1.0"
     }
 
