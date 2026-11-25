@@ -3,6 +3,40 @@ import 'package:raven23_player/models/media_item.dart';
 
 void main() {
   group('MediaItem origin detection', () {
+    test('maps unexported primary-app downloads to the private content URI', () {
+      final item = MediaItem.fromPrimaryDownload({
+        'id': 'media-episode-44',
+        'title': 'Episode 4',
+        'mediaType': 'tv',
+        'quality': '1080p',
+        'state': 'completed',
+        'progress': 100,
+        'bytesDownloaded': 2048,
+        'createdAt': 1795651200000,
+        'contentId': 77,
+        'seasonNumber': 2,
+        'episodeNumber': 4,
+        'posterUrl': 'https://example.invalid/poster.jpg',
+        'subtitleUri': 'content://com.m5ham3d.raven23.offline-library/downloads/media-episode-44/subtitle',
+        'subtitleName': 'Episode.4.ar.srt',
+        'videoUri': 'content://com.m5ham3d.raven23.offline-library/downloads/media-episode-44/video',
+        'durationMs': 2400000,
+        'sizeBytes': 2048,
+        'isPlayable': true,
+        'downloadDataJson': '{"title":"Episode 4","streamIdentity":{"source":"offline"}}',
+      });
+
+      expect(item.origin, MediaOrigin.raven23Download);
+      expect(item.isPlayable, isTrue);
+      expect(item.contentUri, contains('/media-episode-44/video'));
+      expect(item.subtitles, hasLength(1));
+      expect(item.subtitles.single.language, 'ar');
+      expect(item.mediaType, 'tv');
+      expect(item.contentId, 77);
+      expect(item.dateAddedSeconds, 1795651200);
+      expect(item.isAccountMedia, isFalse);
+    });
+
     test('recognizes the shared Movies/RAVEN23 library', () {
       final item = MediaItem.fromMaps(
         {
