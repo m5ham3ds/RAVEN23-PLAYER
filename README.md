@@ -47,7 +47,7 @@ cd ..
 flutter build apk --release --target-platform android-arm64
 ```
 
-GitHub Actions installs Flutter 3.35.7, Java 17, Android SDK 36 and Gradle 8.14, generates the Android wrapper, runs formatting/analyze/tests, then builds an ARM64 release APK. The APK is attached as a workflow artifact; production signing is intentionally not configured in source.
+GitHub Actions installs Flutter 3.35.7, Java 17, Android SDK 36 and Gradle 8.14, generates the Android wrapper, runs formatting/analyze/tests, then builds an ARM64 release APK. The APK is attached as a workflow artifact; production signing is intentionally not configured in source. Workflow: `.github/workflows/android-ci.yml`.
 
 ## Shared-library contract
 
