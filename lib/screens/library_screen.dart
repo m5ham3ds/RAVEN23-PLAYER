@@ -113,9 +113,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final query = _query.toLowerCase();
     final items = source.where((item) {
       if (_filter == LibraryFilter.raven23 &&
-          item.origin != MediaOrigin.raven23Library) return false;
+          item.origin != MediaOrigin.raven23Library) {
+        return false;
+      }
       if (_filter == LibraryFilter.device &&
-          item.origin != MediaOrigin.deviceLocal) return false;
+          item.origin != MediaOrigin.deviceLocal) {
+        return false;
+      }
       return query.isEmpty || item.title.toLowerCase().contains(query);
     }).toList()
       ..sort((a, b) => b.dateAddedSeconds.compareTo(a.dateAddedSeconds));
@@ -187,8 +191,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   String _count(int value) {
-    if (value >= 1000000) return (value / 1000000).toStringAsFixed(1) + 'M';
-    if (value >= 10000) return (value / 1000).toStringAsFixed(1) + 'K';
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    }
+    if (value >= 10000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    }
     return value.toString();
   }
 
@@ -391,7 +399,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Text(title, style: const TextStyle(
                 fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
               const SizedBox(height: 5),
-              Text(items.length.toString() + ' videos available on this device',
+              Text('${items.length} videos available on this device',
                   style: const TextStyle(color: Colors.white54, fontSize: 13)),
               if (_tab == 3) ...[
                 const SizedBox(height: 14),
@@ -490,7 +498,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             style: TextStyle(color: Colors.white54)),
         const SizedBox(height: 22),
         _SettingRow(icon: Icons.video_library_outlined, title: 'Media library',
-          subtitle: videos.length.toString() + ' videos indexed on this device',
+          subtitle: '${videos.length} videos indexed on this device',
           onTap: _refresh, trailing: const Icon(Icons.refresh_rounded,
               color: Colors.white54)),
         const SizedBox(height: 10),
@@ -938,7 +946,7 @@ class _ContinueCard extends StatelessWidget {
           style: const TextStyle(color: Colors.white, fontSize: 12,
               fontWeight: FontWeight.w700)),
         const SizedBox(height: 3),
-        Text((fraction * 100).round().toString() + '% watched',
+        Text('${(fraction * 100).round()}% watched',
           style: const TextStyle(color: Colors.white54, fontSize: 10)),
       ]),
     ));
@@ -1087,9 +1095,9 @@ class _VideoTile extends StatelessWidget {
                   _Metadata(icon: Icons.play_circle_outline_rounded,
                       text: item.formattedDuration),
                   _Metadata(icon: Icons.storage_rounded,
-                      text: sizeMb.toStringAsFixed(0) + ' MB'),
+                      text: '${sizeMb.toStringAsFixed(0)} MB'),
                   _Metadata(icon: Icons.subtitles_outlined,
-                      text: item.subtitles.length.toString() + ' subtitle(s)'),
+                      text: '${item.subtitles.length} subtitle(s)'),
                 ]),
                 const SizedBox(height: 5),
                 Text(
@@ -1175,8 +1183,7 @@ class _GridVideo extends StatelessWidget {
           Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
           const SizedBox(height: 5),
-          Text(item.formattedDuration + '  •  ' +
-              item.subtitles.length.toString() + ' subtitles',
+          Text('${item.formattedDuration}  •  ${item.subtitles.length} subtitles',
             maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white54, fontSize: 10)),
         ]),
@@ -1208,7 +1215,7 @@ class _FilterChip extends StatelessWidget {
           border: Border.all(color: selected
               ? Raven23PlayerApp.ravenRed.withValues(alpha: 0.65)
               : Colors.white12)),
-        child: Text(label + '  ' + count.toString(), style: TextStyle(
+        child: Text('$label  $count', style: TextStyle(
           color: selected ? Colors.white : Colors.white60,
           fontSize: 12, fontWeight: FontWeight.w700)),
       ),
