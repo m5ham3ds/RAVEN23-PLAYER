@@ -71,24 +71,32 @@ class _LibraryScreenState extends State<LibraryScreen>
       _setError('RAVEN23 Player currently targets Android.');
       return const [];
     }
-    var permission = await Permission.videos.request();
-    if (!permission.isGranted && !permission.isLimited) {
-      permission = await Permission.storage.request();
-    }
-    if (!permission.isGranted && !permission.isLimited) {
-      _setError('Allow video access to scan this device.');
-      return const [];
-    }
     try {
-      final localVideos = await _library.scanVideos();
+      // RAVEN23's companion provider is independent of the public MediaStore
+      // video permission. Read it first so private app downloads remain visible
+      // even when the user denies access to ordinary phone videos.
       final primaryDownloads = await _library.scanPrimaryDownloads();
+      var permission = await Permission.videos.request();
+      if (!permission.isGranted && !permission.isLimited) {
+        permission = await Permission.storage.request();
+      }
+      final localVideos = permission.isGranted || permission.isLimited
+          ? await _library.scanVideos()
+          : const <MediaItem>[];
       final byId = <String, MediaItem>{
         for (final item in localVideos) item.id: item,
         for (final item in primaryDownloads) item.id: item,
       };
       final items = byId.values.toList()
         ..sort((a, b) => b.dateAddedSeconds.compareTo(a.dateAddedSeconds));
-      if (mounted) setState(() => _error = null);
+      if (mounted) {
+        setState(() => _error = null);
+        if (!permission.isGranted &&
+            !permission.isLimited &&
+            items.isEmpty) {
+          setState(() => _error = 'Allow video access to scan this device.');
+        }
+      }
       return items;
     } catch (error) {
       _setError(error.toString());
