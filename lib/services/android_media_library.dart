@@ -32,11 +32,19 @@ class AndroidMediaLibrary {
 
   Future<List<MediaItem>> scanPrimaryDownloads() async {
     if (!Platform.isAndroid) return const [];
-    final raw = await _channel.invokeListMethod<Object?>('listRaven23Downloads');
-    return (raw ?? const <Object?>[])
-        .whereType<Map>()
-        .map((row) => MediaItem.fromPrimaryDownload(row.cast<Object?, Object?>()))
-        .toList(growable: false);
+    try {
+      final raw =
+          await _channel.invokeListMethod<Object?>('listRaven23Downloads');
+      return (raw ?? const <Object?>[])
+          .whereType<Map>()
+          .map((row) =>
+              MediaItem.fromPrimaryDownload(row.cast<Object?, Object?>()))
+          .where((item) => item.isPlayable)
+          .toList(growable: false);
+    } on PlatformException {
+      // The main RAVEN23 app is optional; standalone local playback remains.
+      return const [];
+    }
   }
 
   Future<Uint8List?> videoThumbnail(String uri) async {
