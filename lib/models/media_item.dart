@@ -17,6 +17,9 @@ class MediaSubtitle {
   final String format;
   final String? path;
 
+  static String? _nonEmpty(String? value) =>
+      value == null || value.trim().isEmpty ? null : value.trim();
+
   factory MediaSubtitle.fromMap(Map<Object?, Object?> map) {
     final name = map['displayName']?.toString() ?? 'Subtitle';
     final extension = p.extension(name).replaceFirst('.', '').toLowerCase();
@@ -108,7 +111,7 @@ class MediaItem {
       return sameFolder &&
           (subtitleStem == stem ||
               subtitleStem.startsWith('$stem.') ||
-              subtitleStem.startsWith('$stem' + '_') ||
+              subtitleStem.startsWith('${stem}_') ||
               subtitleStem.startsWith('$stem-'));
     }).map(MediaSubtitle.fromMap).toList(growable: false)
       ..sort((a, b) => a.language.compareTo(b.language));
