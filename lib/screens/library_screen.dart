@@ -280,8 +280,7 @@ class _MediaTile extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 5),
           child: Text(
-            item.formattedDuration + ' - ' + sizeMb.toStringAsFixed(0) +
-                ' MB - ' + item.subtitles.length.toString() + ' subtitle(s)',
+            '${item.formattedDuration} - ${sizeMb.toStringAsFixed(0)} MB - ${item.subtitles.length} subtitle(s)',
             style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ),
