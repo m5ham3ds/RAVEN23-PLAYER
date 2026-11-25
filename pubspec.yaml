@@ -11,7 +11,7 @@ dependencies:
   raven23:
     git:
       url: https://github.com/m5ham3ds/RAVEN23.git
-      ref: 9c78364e1d631cc26414b3b086a263cd4450e6b2
+      ref: player-package-compat
   better_player_plus:
     git:
       url: https://github.com/BeamlakAschalew/flixquest-betterplayer.git
