@@ -992,7 +992,7 @@ class _ContinueCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Stack(fit: StackFit.expand, children: [
-          _Artwork(seed: recent.item.id.hashCode),
+          _MediaThumbnail(item: recent.item),
           Container(decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: Colors.white24))),
@@ -1019,66 +1019,94 @@ class _ContinueCard extends StatelessWidget {
   }
 }
 
-class _Artwork extends StatelessWidget {
-  const _Artwork({required this.seed});
-  final int seed;
+class _MediaThumbnail extends StatelessWidget {
+  const _MediaThumbnail({
+    required this.item,
+    this.width,
+    this.height,
+    this.radius = 13,
+  });
+
+  final MediaItem item;
+  final double? width;
+  final double? height;
+  final double radius;
+
+  static final AndroidMediaLibrary _library = AndroidMediaLibrary();
+
+  String? get _posterUrl {
+    final direct = item.posterUrl?.trim();
+    if (direct != null && direct.isNotEmpty) {
+      final parsed = Uri.tryParse(direct);
+      if (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty) {
+        return direct;
+      }
+    }
+    var path = (item.posterPath ?? '').trim();
+    if (path.isEmpty) path = (item.backdropPath ?? '').trim();
+    if (path.isEmpty) return null;
+    final parsed = Uri.tryParse(path);
+    if (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty) {
+      return path;
+    }
+    path = path.replaceFirst(RegExp(r'^/+'), '');
+    path = path.replaceFirst(RegExp(r'^w\d+/'), '');
+    return 'https://image.tmdb.org/t/p/w500/$path';
+  }
+
+  Widget _placeholder() => DecoratedBox(
+        decoration: const BoxDecoration(color: Color(0xFF171717)),
+        child: Center(
+          child: Icon(
+            item.origin == MediaOrigin.raven23Download
+                ? Icons.movie_outlined
+                : Icons.video_file_outlined,
+            color: Colors.white30,
+            size: 30,
+          ),
+        ),
+      );
+
+  Widget _frame(Uint8List bytes) => Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
 
   @override
   Widget build(BuildContext context) {
-    const palettes = [
-      [Color(0xFF102D4A), Color(0xFF64202D), Color(0xFF05080D)],
-      [Color(0xFF38132D), Color(0xFFB32A38), Color(0xFF10080E)],
-      [Color(0xFF12445A), Color(0xFF342052), Color(0xFF07090F)],
-      [Color(0xFF5A2A12), Color(0xFF202B42), Color(0xFF09090D)],
-    ];
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(13),
-      child: CustomPaint(
-        painter: _ArtworkPainter(
-          colors: palettes[seed.abs() % palettes.length], seed: seed),
-        child: const SizedBox.expand(),
-      ),
+    final poster = _posterUrl;
+    late final Widget image;
+    if (poster != null) {
+      image = Image.network(
+        poster,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => _nativeThumbnail(),
+      );
+    } else {
+      image = _nativeThumbnail();
+    }
+    final clipped = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: image,
     );
-  }
-}
-
-class _ArtworkPainter extends CustomPainter {
-  const _ArtworkPainter({required this.colors, required this.seed});
-  final List<Color> colors;
-  final int seed;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bounds = Offset.zero & size;
-    canvas.drawRect(bounds, Paint()..shader = LinearGradient(
-      colors: colors, begin: Alignment.topLeft,
-      end: Alignment.bottomRight).createShader(bounds));
-    final random = seed.abs();
-    for (var i = 0; i < 8; i++) {
-      final x = (random >> (i % 16)) % 100 / 100 * size.width;
-      final y = (i * 17 % 100) / 100 * size.height;
-      canvas.drawCircle(Offset(x, y), 7 + (i % 4) * 8,
-        Paint()..color = colors[(i + 1) % colors.length]
-            .withValues(alpha: 0.15));
+    if (width != null || height != null) {
+      return SizedBox(width: width, height: height, child: clipped);
     }
-    final lines = Paint()
-      ..color = Colors.white.withValues(alpha: 0.10)
-      ..strokeWidth = 1;
-    for (var i = 0; i < 8; i++) {
-      canvas.drawLine(
-        Offset(size.width * i / 8, size.height),
-        Offset(size.width * (i + 1) / 8, size.height * 0.25),
-        lines);
-    }
-    canvas.drawRect(bounds, Paint()..shader = LinearGradient(
-      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
-      begin: Alignment.center, end: Alignment.bottomCenter)
-        .createShader(bounds));
+    return SizedBox.expand(child: clipped);
   }
 
-  @override
-  bool shouldRepaint(covariant _ArtworkPainter oldDelegate) =>
-      oldDelegate.seed != seed;
+  Widget _nativeThumbnail() => FutureBuilder<Uint8List?>(
+        future: _library.videoThumbnail(item.contentUri),
+        builder: (context, snapshot) {
+          final bytes = snapshot.data;
+          if (bytes != null && bytes.isNotEmpty) return _frame(bytes);
+          return _placeholder();
+        },
+      );
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -1140,14 +1168,12 @@ class _VideoTile extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: 0.055)),
           ),
           child: Row(children: [
-            Container(width: 56, height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFF3A1115),
-                borderRadius: BorderRadius.circular(14)),
-              child: Icon(
-                item.origin == MediaOrigin.raven23Library
-                    ? Icons.download_done_rounded : Icons.video_file_rounded,
-                color: Raven23PlayerApp.ravenRed, size: 29)),
+            _MediaThumbnail(
+              item: item,
+              width: 56,
+              height: 56,
+              radius: 14,
+            ),
             const SizedBox(width: 12),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1229,7 +1255,7 @@ class _GridVideo extends StatelessWidget {
         padding: const EdgeInsets.all(9),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Stack(fit: StackFit.expand, children: [
-            _Artwork(seed: item.id.hashCode),
+            _MediaThumbnail(item: item),
             const Center(child: Icon(Icons.play_circle_fill_rounded,
                 color: Colors.white, size: 38)),
             Positioned(right: 3, top: 3,
