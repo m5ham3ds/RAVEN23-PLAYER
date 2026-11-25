@@ -124,7 +124,14 @@ jobs:
           test -s "$apk_path"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk_path"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk_path" | grep -F "package: name='com.m5ham3ds.raven23.player'"
-          unzip -Z1 "$apk_path" | grep -q '^lib/arm64-v8a/libapp.so$'
+          archive_entries="$(unzip -Z1 "$apk_path")"
+          case "$archive_entries" in
+            *"lib/arm64-v8a/libflutter.so"*) ;;
+            *)
+              echo "::error::The APK does not contain the ARM64 Flutter runtime."
+              exit 1
+              ;;
+          esac
           echo "apk_path=$apk_path" >> "$GITHUB_OUTPUT"
           echo "build_kind=$build_kind" >> "$GITHUB_OUTPUT"
 
