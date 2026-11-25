@@ -4,6 +4,17 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def releaseKeystorePath = System.getenv("RAVEN23_KEYSTORE_PATH")
+def releaseStorePassword = System.getenv("RAVEN23_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("RAVEN23_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("RAVEN23_KEY_PASSWORD")
+def hasReleaseSigning = [
+    releaseKeystorePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { value -> value != null && !value.isBlank() }
+
 android {
     namespace "com.m5ham3ds.raven23.player"
     compileSdk 36
@@ -17,12 +28,31 @@ android {
         jvmTarget = "17"
     }
 
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.m5ham3ds.raven23.player"
         minSdk flutter.minSdkVersion
         targetSdk 36
-        versionCode 1
+        versionCode (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
         versionName "0.1.0"
+    }
+
+    buildTypes {
+        release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
 }
 
