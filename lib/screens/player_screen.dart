@@ -128,13 +128,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _saveProgress() async {
     final value = _controller?.videoPlayerController?.value;
-    if (value == null) return;
-    final duration = value.duration;
-    if (duration == null) return;
+    if (value == null || !value.isInitialized) return;
     await widget.progressStore.write(
       widget.item,
       positionMs: value.position.inMilliseconds,
-      durationMs: duration.inMilliseconds,
+      durationMs: value.duration.inMilliseconds,
     );
   }
 
@@ -149,8 +147,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
-    final subtitleLabel =
-        '${widget.item.subtitles.length} subtitle track(s)${_restoredPosition ? ' - Resumed' : ''}';
+    final subtitleLabel = widget.item.subtitles.length.toString() +
+        ' subtitle track(s)' +
+        (_restoredPosition ? ' - Resumed' : '');
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(

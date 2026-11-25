@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -8,8 +7,6 @@ import '../models/media_item.dart';
 class AndroidMediaLibrary {
   static const MethodChannel _channel =
       MethodChannel('com.m5ham3ds.raven23.player/media_library');
-
-  final Map<String, Uint8List> _thumbnailCache = <String, Uint8List>{};
 
   Future<List<MediaItem>> scanVideos() async {
     if (!Platform.isAndroid) {
@@ -30,34 +27,6 @@ class AndroidMediaLibrary {
         .toList(growable: false);
   }
 
-  Future<List<MediaItem>> scanPrimaryDownloads() async {
-    if (!Platform.isAndroid) return const [];
-    final raw = await _channel.invokeListMethod<Object?>('listRaven23Downloads');
-    return (raw ?? const <Object?>[])
-        .whereType<Map>()
-        .map((row) => MediaItem.fromPrimaryDownload(row.cast<Object?, Object?>()))
-        .toList(growable: false);
-  }
-
-  Future<Uint8List?> videoThumbnail(String uri) async {
-    if (!uri.startsWith('content://')) return null;
-    final cached = _thumbnailCache[uri];
-    if (cached != null) return cached;
-    try {
-      final bytes = await _channel.invokeMethod<Uint8List>(
-        'getVideoThumbnail',
-        {'uri': uri},
-      );
-      if (bytes != null && bytes.isNotEmpty) {
-        _thumbnailCache[uri] = bytes;
-        return bytes;
-      }
-    } on PlatformException {
-      // Thumbnail extraction is optional and must not block the library.
-    }
-    return null;
-  }
-
   Future<String> cacheSubtitle(
     String uri, {
     String displayName = 'subtitle.vtt',
@@ -69,17 +38,6 @@ class AndroidMediaLibrary {
     String preferredName = 'video.mp4',
   }) =>
       _cacheUri('cacheContentUri', uri, 'preferredName', preferredName);
-
-  Future<String> cachePlaybackUri(
-    String uri, {
-    String preferredName = 'video.mp4',
-  }) =>
-      _cacheUri('cachePlaybackUri', uri, 'preferredName', preferredName);
-
-  Future<void> deletePlaybackCache(String path) async {
-    if (!Platform.isAndroid || path.trim().isEmpty) return;
-    await _channel.invokeMethod<bool>('deletePlaybackCache', {'path': path});
-  }
 
   Future<String> _cacheUri(
     String method,

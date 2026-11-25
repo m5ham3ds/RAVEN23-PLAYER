@@ -17,7 +17,7 @@ class TransferService {
     final videoPath = await _localPath(
       item.path,
       item.contentUri,
-      '${item.title}.mp4',
+      item.title + '.mp4',
     );
     final videoFile = File(videoPath);
     if (!await videoFile.exists()) {
@@ -71,14 +71,17 @@ class TransferService {
 
     final temporaryDirectory = await getTemporaryDirectory();
     final manifestFile = File(
-      '${temporaryDirectory.path}/raven23-transfer-${DateTime.now().microsecondsSinceEpoch}.json',
+      temporaryDirectory.path +
+          '/raven23-transfer-' +
+          DateTime.now().microsecondsSinceEpoch.toString() +
+          '.json',
     );
     await manifestFile.writeAsString(jsonEncode(manifest), flush: true);
     files.add(XFile(manifestFile.path));
 
     await Share.shareXFiles(
       files,
-      subject: 'RAVEN23 Transfer - ${item.title}',
+      subject: 'RAVEN23 Transfer - ' + item.title,
       text: 'RAVEN23 Player media package. Include the video, subtitle files and JSON manifest.',
     );
   }

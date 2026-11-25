@@ -41,7 +41,10 @@ class PlaybackProgressStore {
       PlaybackProgressStore(await SharedPreferences.getInstance());
 
   String _key(MediaItem item) =>
-      'raven23_player.progress.v1.${item.origin.name}.${Uri.encodeComponent(item.id)}';
+      'raven23_player.progress.v1.' +
+      item.origin.name +
+      '.' +
+      Uri.encodeComponent(item.id);
 
   Future<PlaybackProgress?> read(MediaItem item) async {
     final value = _preferences.getString(_key(item));

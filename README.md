@@ -38,34 +38,16 @@ flutter analyze
 flutter test
 ```
 
-For a local installable preview build, set `android/local.properties` with your Flutter SDK and Android SDK paths, install Gradle 8.14, then generate the wrapper once:
+For a local Android build, set `android/local.properties` with your Flutter SDK and Android SDK paths, install Gradle 8.14, then generate the wrapper once:
 
 ```bash
 cd android
 gradle wrapper --gradle-version 8.14 --distribution-type all
 cd ..
-flutter build apk --debug --target-platform android-arm64
+flutter build apk --release --target-platform android-arm64
 ```
 
-## Android signing and installation
-
-The CI pipeline verifies every APK with Android's `apksigner`, checks the package ID, and checks that the ARM64 Flutter library is present before publishing the artifact.
-
-- Without signing secrets, CI produces an **installable debug-signed preview APK**. It is intended for device testing, not public release. Hosted runners create their debug key independently, so a later preview may not be accepted as an in-place update; uninstall the previous preview first, or configure a persistent release key.
-- With all four signing secrets configured, CI produces a **release-signed APK**. Keep the keystore and passwords private and back them up securely; losing the keystore prevents signed updates to users who installed an app with that key.
-
-To prepare a persistent release key locally, run `keytool -genkeypair -v -keystore raven23-player-release.jks -alias raven23-player -keyalg RSA -keysize 2048 -validity 10000`. Store the keystore safely outside this repository. Add these GitHub Actions repository secrets under **Settings → Secrets and variables → Actions**:
-
-| Secret | Value |
-|---|---|
-| `RAVEN23_KEYSTORE_BASE64` | Base64 encoding of the complete `.jks` file |
-| `RAVEN23_KEYSTORE_PASSWORD` | Keystore password |
-| `RAVEN23_KEY_ALIAS` | `raven23-player` |
-| `RAVEN23_KEY_PASSWORD` | Key password |
-
-For example, create the Base64 value with `base64 -w 0 raven23-player-release.jks` on Linux/Termux. Never commit the keystore or its passwords to Git.
-
-GitHub Actions installs Flutter 3.35.7, Java 17, Android SDK 36 and Gradle 8.14, generates the Android wrapper, runs formatting/analyze/tests, builds the APK, verifies its signature and package metadata, then attaches the installable APK as a workflow artifact. Workflow: `.github/workflows/android-ci.yml`.
+GitHub Actions installs Flutter 3.35.7, Java 17, Android SDK 36 and Gradle 8.14, generates the Android wrapper, runs formatting/analyze/tests, then builds an ARM64 release APK. The APK is attached as a workflow artifact; production signing is intentionally not configured in source.
 
 ## Shared-library contract
 
