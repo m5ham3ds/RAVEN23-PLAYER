@@ -228,8 +228,14 @@ class _LibraryScreenState extends State<LibraryScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: _drawer(),
+    return PopScope(
+      canPop: _drawerOpen || _tab == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || _drawerOpen) return;
+        if (_tab != 0) _selectTab(0);
+      },
+      child: Scaffold(
+        drawer: _drawer(),
       onDrawerChanged: (open) {
         if (_drawerOpen != open && mounted) {
           setState(() => _drawerOpen = open);
@@ -240,11 +246,13 @@ class _LibraryScreenState extends State<LibraryScreen>
         leadingWidth: 52,
         titleSpacing: 2,
         leading: Builder(
-          builder: (context) => IconButton(
-            onPressed: _searching
-                ? _endSearch
-                : () => Scaffold.of(context).openDrawer(),
-            icon: Icon(_searching ? Icons.arrow_back : Icons.menu_rounded),
+          builder: (context) => AppPressFeedback(
+            child: IconButton(
+              onPressed: _searching
+                  ? _endSearch
+                  : () => Scaffold.of(context).openDrawer(),
+              icon: Icon(_searching ? Icons.arrow_back : Icons.menu_rounded),
+            ),
           ),
         ),
         title: _searching
@@ -262,11 +270,14 @@ class _LibraryScreenState extends State<LibraryScreen>
               )
             : const _Brand(),
         actions: [
-          IconButton(
-            onPressed: _searching ? _endSearch : _beginSearch,
-            icon: Icon(_searching ? Icons.close : Icons.search_rounded),
+          AppPressFeedback(
+            child: IconButton(
+              onPressed: _searching ? _endSearch : _beginSearch,
+              icon: Icon(_searching ? Icons.close : Icons.search_rounded),
+            ),
           ),
-          PopupMenuButton<String>(
+          AppPressFeedback(
+            child: PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),
             onSelected: (value) {
               if (value == 'refresh') _refresh();
@@ -285,6 +296,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               PopupMenuItem(value: 'settings', child: Text('Settings')),
               PopupMenuItem(value: 'about', child: Text('About')),
             ],
+            ),
           ),
           const SizedBox(width: 4),
         ],
@@ -304,17 +316,11 @@ class _LibraryScreenState extends State<LibraryScreen>
             );
           }
           final videos = snapshot.data ?? const <MediaItem>[];
-          return PopScope(
-            canPop: _drawerOpen || _tab == 0,
-            onPopInvokedWithResult: (didPop, result) {
-              if (didPop || _drawerOpen) return;
-              if (_tab != 0) _selectTab(0);
-            },
-            child: _tabStack(videos),
-          );
+          return _tabStack(videos);
         },
       ),
-      bottomNavigationBar: _BottomBar(selected: _tab, onSelect: _selectTab),
+        bottomNavigationBar: _BottomBar(selected: _tab, onSelect: _selectTab),
+      ),
     );
   }
 
@@ -1133,16 +1139,18 @@ class _SectionTitle extends StatelessWidget {
       Text(trailing!, style: const TextStyle(
           color: Colors.white54, fontSize: 12)),
     if (onAll != null)
-      TextButton(
-        onPressed: onAll,
-        style: TextButton.styleFrom(
-          foregroundColor: Raven23PlayerApp.ravenRed,
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 5)),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Text('View all', style: TextStyle(fontWeight: FontWeight.w700)),
-          Icon(Icons.chevron_right_rounded, size: 18),
-        ]),
+      AppPressFeedback(
+        child: TextButton(
+          onPressed: onAll,
+          style: TextButton.styleFrom(
+            foregroundColor: Raven23PlayerApp.ravenRed,
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 5)),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('View all', style: TextStyle(fontWeight: FontWeight.w700)),
+            Icon(Icons.chevron_right_rounded, size: 18),
+          ]),
+        ),
       ),
   ]);
 }
@@ -1442,14 +1450,16 @@ class _BottomBar extends StatelessWidget {
               color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.42),
               blurRadius: 22, spreadRadius: 1)],
           ),
-          child: Material(
-            color: Colors.transparent,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () => onSelect(2),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 42),
+          child: AppPressFeedback(
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => onSelect(2),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 42),
+              ),
             ),
           ),
         )),
@@ -1551,13 +1561,15 @@ class _MessageView extends StatelessWidget {
       Text(message, textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white60, height: 1.5)),
       const SizedBox(height: 18),
-      FilledButton.icon(
-        onPressed: onRefresh,
-        style: FilledButton.styleFrom(
-          backgroundColor: Raven23PlayerApp.ravenRed,
-          foregroundColor: Colors.white),
-        icon: const Icon(Icons.refresh_rounded),
-        label: const Text('Refresh library'),
+      AppPressFeedback(
+        child: FilledButton.icon(
+          onPressed: onRefresh,
+          style: FilledButton.styleFrom(
+            backgroundColor: Raven23PlayerApp.ravenRed,
+            foregroundColor: Colors.white),
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Refresh library'),
+        ),
       ),
     ]),
   ));
