@@ -180,27 +180,44 @@ class MainActivity : FlutterActivity() {
         if (rawUri.isNullOrBlank()) return null
         val uri = Uri.parse(rawUri)
         if (uri.scheme != "content") return null
-        return try {
-            val bitmap = if (android.os.Build.VERSION.SDK_INT >= 29) {
-                contentResolver.loadThumbnail(uri, Size(480, 270), CancellationSignal())
-            } else {
-                val retriever = android.media.MediaMetadataRetriever()
-                try {
-                    contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
-                        retriever.setDataSource(descriptor.fileDescriptor)
-                        retriever.getFrameAtTime(1_000_000L)
-                    }
-                } finally {
-                    retriever.release()
+
+        // MediaStore can provide a fast indexed thumbnail. The private
+        // companion provider is not MediaStore, so it may not implement
+        // openTypedAssetFile for image/*; fall back to decoding its video fd.
+        val indexed = if (Build.VERSION.SDK_INT >= 29) {
+            runCatching {
+                contentResolver.loadThumbnail(
+                    uri,
+                    Size(480, 270),
+                    CancellationSignal(),
+                )
+            }.getOrNull()
+        } else {
+            null
+        }
+
+        val bitmap = indexed ?: run {
+            val retriever = android.media.MediaMetadataRetriever()
+            try {
+                contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                    retriever.setDataSource(descriptor.fileDescriptor)
+                    retriever.getFrameAtTime(
+                        1_000_000L,
+                        android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                    )
                 }
-            } ?: return null
+            } finally {
+                retriever.release()
+            }
+        } ?: return null
+
+        return try {
             ByteArrayOutputStream().use { output ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 84, output)
-                bitmap.recycle()
                 output.toByteArray()
             }
-        } catch (_: Exception) {
-            null
+        } finally {
+            bitmap.recycle()
         }
     }
 
