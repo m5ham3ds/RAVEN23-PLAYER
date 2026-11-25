@@ -878,76 +878,78 @@ class _Stat extends StatelessWidget {
     final border = selected
         ? Raven23PlayerApp.ravenRed.withValues(alpha: 0.78)
         : Colors.white.withValues(alpha: 0.12);
-    return SizedBox(width: 108, child: Material(
-      color: selected ? const Color(0xFF381013) : const Color(0xFF151515),
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
+    return AppPressFeedback(
+      child: SizedBox(width: 108, child: Material(
+        color: selected ? const Color(0xFF381013) : const Color(0xFF151515),
         borderRadius: BorderRadius.circular(17),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: border, width: selected ? 1.4 : 1),
-            boxShadow: selected ? [BoxShadow(
-              color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.12),
-              blurRadius: 18)] : null,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(17),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: border, width: selected ? 1.4 : 1),
+              boxShadow: selected ? [BoxShadow(
+                color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.12),
+                blurRadius: 18)] : null,
+            ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(icon, color: Colors.white, size: 25),
+              const SizedBox(height: 5),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white,
+                  fontWeight: FontWeight.w700, fontSize: 11)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(
+                  color: Colors.white70, fontSize: 12)),
+            ]),
           ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, color: Colors.white, size: 25),
-            const SizedBox(height: 5),
-            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white,
-                fontWeight: FontWeight.w700, fontSize: 11)),
-            const SizedBox(height: 2),
-            Text(value, style: const TextStyle(
-                color: Colors.white70, fontSize: 12)),
-          ]),
         ),
-      ),
-    ));
+      )),
+    );
   }
 }
-
 class _LibraryShortcut extends StatelessWidget {
   const _LibraryShortcut({required this.onTap});
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xFF211415),
-    borderRadius: BorderRadius.circular(18),
-    child: InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) => AppPressFeedback(
+    child: Material(
+      color: const Color(0xFF211415),
       borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.24)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.24)),
+          ),
+          child: const Row(children: [
+            Icon(Icons.folder_open_rounded,
+                color: Raven23PlayerApp.ravenRed, size: 36),
+            SizedBox(width: 15),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Video Library',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                SizedBox(height: 3),
+                Text('Browse, play, and manage your videos',
+                    style: TextStyle(color: Colors.white60, fontSize: 12)),
+              ],
+            )),
+            Icon(Icons.chevron_right_rounded, color: Colors.white, size: 28),
+          ]),
         ),
-        child: const Row(children: [
-          Icon(Icons.folder_open_rounded,
-              color: Raven23PlayerApp.ravenRed, size: 36),
-          SizedBox(width: 15),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Video Library',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-              SizedBox(height: 3),
-              Text('Browse, play, and manage your videos',
-                  style: TextStyle(color: Colors.white60, fontSize: 12)),
-            ],
-          )),
-          Icon(Icons.chevron_right_rounded, color: Colors.white, size: 28),
-        ]),
       ),
     ),
   );
 }
-
 class _ContinueSection extends StatelessWidget {
   const _ContinueSection({required this.items, required this.onOpen,
     required this.onAll});
@@ -987,38 +989,39 @@ class _ContinueCard extends StatelessWidget {
     final duration = recent.progress.durationMs;
     final fraction = duration <= 0 ? 0.0 :
         (recent.progress.positionMs / duration).clamp(0.0, 1.0).toDouble();
-    return SizedBox(width: 168, child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: Stack(fit: StackFit.expand, children: [
-          _MediaThumbnail(item: recent.item),
-          Container(decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: Colors.white24))),
-          const Center(child: CircleAvatar(
-            radius: 20, backgroundColor: Color(0x99000000),
-            child: Icon(Icons.play_arrow_rounded,
-                color: Colors.white, size: 27))),
-          Positioned(left: 8, right: 8, bottom: 8, child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(value: fraction, minHeight: 4,
-              backgroundColor: Colors.white24,
-              color: Raven23PlayerApp.ravenRed))),
-        ])),
-        const SizedBox(height: 7),
-        Text(recent.item.title, maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontSize: 12,
-              fontWeight: FontWeight.w700)),
-        const SizedBox(height: 3),
-        Text('${(fraction * 100).round()}% watched',
-          style: const TextStyle(color: Colors.white54, fontSize: 10)),
-      ]),
-    ));
+    return AppPressFeedback(
+      child: SizedBox(width: 168, child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Stack(fit: StackFit.expand, children: [
+            _MediaThumbnail(item: recent.item),
+            Container(decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: Colors.white24))),
+            const Center(child: CircleAvatar(
+              radius: 20, backgroundColor: Color(0x99000000),
+              child: Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 27))),
+            Positioned(left: 8, right: 8, bottom: 8, child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(value: fraction, minHeight: 4,
+                backgroundColor: Colors.white24,
+                color: Raven23PlayerApp.ravenRed))),
+          ])),
+          const SizedBox(height: 7),
+          Text(recent.item.title, maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 12,
+                fontWeight: FontWeight.w700)),
+          const SizedBox(height: 3),
+          Text('\${(fraction * 100).round()}% watched',
+            style: const TextStyle(color: Colors.white54, fontSize: 10)),
+        ]),
+      )),
+    );
   }
 }
-
 class _MediaThumbnail extends StatelessWidget {
   const _MediaThumbnail({
     required this.item,
@@ -1155,71 +1158,75 @@ class _VideoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sizeMb = item.sizeBytes / (1024 * 1024);
-    return Material(
-      color: const Color(0xFF171717),
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
-        onTap: onTap,
+    final sourceLabel = item.origin == MediaOrigin.raven23Download
+        ? 'RAVEN23 DOWNLOAD'
+        : item.origin == MediaOrigin.raven23Library
+            ? 'RAVEN23 LIBRARY'
+            : 'ON THIS DEVICE';
+    return AppPressFeedback(
+      child: Material(
+        color: const Color(0xFF171717),
         borderRadius: BorderRadius.circular(17),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 3, 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.055)),
+        child: InkWell(
+          onTap: item.isPlayable ? onTap : null,
+          borderRadius: BorderRadius.circular(17),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 10, 3, 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.055)),
+            ),
+            child: Row(children: [
+              _MediaThumbnail(item: item, width: 56, height: 56, radius: 14),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title, maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 7),
+                  Wrap(spacing: 11, runSpacing: 4, children: [
+                    _Metadata(icon: Icons.play_circle_outline_rounded,
+                        text: item.formattedDuration),
+                    _Metadata(icon: Icons.storage_rounded,
+                        text: '\${sizeMb.toStringAsFixed(0)} MB'),
+                    _Metadata(icon: Icons.subtitles_outlined,
+                        text: '\${item.subtitles.length} subtitle(s)'),
+                  ]),
+                  const SizedBox(height: 5),
+                  Text(
+                    sourceLabel,
+                    style: TextStyle(
+                      color: item.origin == MediaOrigin.deviceLocal
+                          ? Colors.white38 : Raven23PlayerApp.ravenRed,
+                      fontSize: 9, fontWeight: FontWeight.w800,
+                      letterSpacing: 1)),
+                ],
+              )),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.white70),
+                onSelected: (value) {
+                  if (value == 'play' && item.isPlayable) onTap();
+                  if (value == 'transfer') onTransfer();
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'play',
+                    enabled: item.isPlayable,
+                    child: const Text('Play'),
+                  ),
+                  const PopupMenuItem(value: 'transfer', child: Text('Transfer')),
+                ],
+              ),
+            ]),
           ),
-          child: Row(children: [
-            _MediaThumbnail(
-              item: item,
-              width: 56,
-              height: 56,
-              radius: 14,
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.title, maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-                const SizedBox(height: 7),
-                Wrap(spacing: 11, runSpacing: 4, children: [
-                  _Metadata(icon: Icons.play_circle_outline_rounded,
-                      text: item.formattedDuration),
-                  _Metadata(icon: Icons.storage_rounded,
-                      text: '${sizeMb.toStringAsFixed(0)} MB'),
-                  _Metadata(icon: Icons.subtitles_outlined,
-                      text: '${item.subtitles.length} subtitle(s)'),
-                ]),
-                const SizedBox(height: 5),
-                Text(
-                  item.origin == MediaOrigin.raven23Library
-                      ? 'RAVEN23 LIBRARY' : 'ON THIS DEVICE',
-                  style: TextStyle(
-                    color: item.origin == MediaOrigin.raven23Library
-                        ? Raven23PlayerApp.ravenRed : Colors.white38,
-                    fontSize: 9, fontWeight: FontWeight.w800,
-                    letterSpacing: 1)),
-              ],
-            )),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded, color: Colors.white70),
-              onSelected: (value) {
-                if (value == 'play') onTap();
-                if (value == 'transfer') onTransfer();
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'play', child: Text('Play')),
-                PopupMenuItem(value: 'transfer', child: Text('Transfer')),
-              ],
-            ),
-          ]),
         ),
       ),
     );
   }
 }
-
 class _Metadata extends StatelessWidget {
   const _Metadata({required this.icon, required this.text});
   final IconData icon;
@@ -1245,45 +1252,51 @@ class _GridVideo extends StatelessWidget {
   final VoidCallback onTransfer;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xFF171717),
-    borderRadius: BorderRadius.circular(17),
-    child: InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) => AppPressFeedback(
+    child: Material(
+      color: const Color(0xFF171717),
       borderRadius: BorderRadius.circular(17),
-      child: Padding(
-        padding: const EdgeInsets.all(9),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Stack(fit: StackFit.expand, children: [
-            _MediaThumbnail(item: item),
-            const Center(child: Icon(Icons.play_circle_fill_rounded,
-                color: Colors.white, size: 38)),
-            Positioned(right: 3, top: 3,
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                onSelected: (value) {
-                  if (value == 'play') onTap();
-                  if (value == 'transfer') onTransfer();
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'play', child: Text('Play')),
-                  PopupMenuItem(value: 'transfer', child: Text('Transfer')),
-                ],
-              )),
-          ])),
-          const SizedBox(height: 9),
-          Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 5),
-          Text('${item.formattedDuration}  •  ${item.subtitles.length} subtitles',
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white54, fontSize: 10)),
-        ]),
+      child: InkWell(
+        onTap: item.isPlayable ? onTap : null,
+        borderRadius: BorderRadius.circular(17),
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Stack(fit: StackFit.expand, children: [
+              _MediaThumbnail(item: item),
+              if (item.isPlayable)
+                const Center(child: Icon(Icons.play_circle_fill_rounded,
+                    color: Colors.white, size: 38)),
+              Positioned(right: 3, top: 3,
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  onSelected: (value) {
+                    if (value == 'play' && item.isPlayable) onTap();
+                    if (value == 'transfer') onTransfer();
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'play', enabled: item.isPlayable,
+                      child: const Text('Play'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'transfer', child: Text('Transfer')),
+                  ],
+                )),
+            ])),
+            const SizedBox(height: 9),
+            Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 5),
+            Text('\${item.formattedDuration}  •  \${item.subtitles.length} subtitles',
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          ]),
+        ),
       ),
     ),
   );
 }
-
 class _FilterChip extends StatelessWidget {
   const _FilterChip({required this.label, required this.count,
     required this.selected, required this.onTap});
@@ -1294,27 +1307,28 @@ class _FilterChip extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? const Color(0xFF3A1115) : const Color(0xFF171717),
-    borderRadius: BorderRadius.circular(30),
-    child: InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) => AppPressFeedback(
+    child: Material(
+      color: selected ? const Color(0xFF3A1115) : const Color(0xFF171717),
       borderRadius: BorderRadius.circular(30),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: selected
-              ? Raven23PlayerApp.ravenRed.withValues(alpha: 0.65)
-              : Colors.white12)),
-        child: Text('$label  $count', style: TextStyle(
-          color: selected ? Colors.white : Colors.white60,
-          fontSize: 12, fontWeight: FontWeight.w700)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: selected
+                ? Raven23PlayerApp.ravenRed.withValues(alpha: 0.65)
+                : Colors.white12)),
+          child: Text('$label  $count', style: TextStyle(
+            color: selected ? Colors.white : Colors.white60,
+            fontSize: 12, fontWeight: FontWeight.w700)),
+        ),
       ),
     ),
   );
 }
-
 class _SettingRow extends StatelessWidget {
   const _SettingRow({required this.icon, required this.title,
     required this.subtitle, this.onTap, this.trailing});
@@ -1326,34 +1340,36 @@ class _SettingRow extends StatelessWidget {
   final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xFF171717),
-    borderRadius: BorderRadius.circular(16),
-    child: InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) => AppPressFeedback(
+    enabled: onTap != null,
+    child: Material(
+      color: const Color(0xFF171717),
       borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Row(children: [
-          Icon(icon, color: Raven23PlayerApp.ravenRed, size: 25),
-          const SizedBox(width: 13),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(subtitle,
-                style: const TextStyle(color: Colors.white54, fontSize: 11)),
-            ],
-          )),
-          trailing ?? const Icon(Icons.chevron_right_rounded,
-              color: Colors.white30),
-        ]),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(children: [
+            Icon(icon, color: Raven23PlayerApp.ravenRed, size: 25),
+            const SizedBox(width: 13),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(subtitle,
+                  style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            )),
+            trailing ?? const Icon(Icons.chevron_right_rounded,
+                color: Colors.white30),
+          ]),
+        ),
       ),
     ),
   );
 }
-
 class _DrawerItem extends StatelessWidget {
   const _DrawerItem({required this.icon, required this.title,
     required this.selected, required this.onTap});
@@ -1364,18 +1380,19 @@ class _DrawerItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    selected: selected,
-    selectedTileColor: Raven23PlayerApp.ravenRed.withValues(alpha: 0.12),
-    leading: Icon(icon,
-        color: selected ? Raven23PlayerApp.ravenRed : Colors.white60),
-    title: Text(title, style: TextStyle(
-      color: selected ? Colors.white : Colors.white70,
-      fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
-    onTap: onTap,
+  Widget build(BuildContext context) => AppPressFeedback(
+    child: ListTile(
+      selected: selected,
+      selectedTileColor: Raven23PlayerApp.ravenRed.withValues(alpha: 0.12),
+      leading: Icon(icon,
+          color: selected ? Raven23PlayerApp.ravenRed : Colors.white60),
+      title: Text(title, style: TextStyle(
+        color: selected ? Colors.white : Colors.white70,
+        fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
+      onTap: onTap,
+    ),
   );
 }
-
 class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.selected, required this.onSelect});
   final int selected;
@@ -1453,31 +1470,32 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = active ? Raven23PlayerApp.ravenRed : Colors.white70;
-    return InkWell(
-      onTap: onTap,
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, color: color, size: 23),
-        const SizedBox(height: 3),
-        Text(label, style: TextStyle(color: color, fontSize: 10,
-            fontWeight: active ? FontWeight.w800 : FontWeight.w500)),
-        const SizedBox(height: 3),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: active ? 24 : 0,
-          height: 2,
-          decoration: BoxDecoration(
-            color: Raven23PlayerApp.ravenRed,
-            borderRadius: BorderRadius.circular(2),
-            boxShadow: active ? [BoxShadow(
-              color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.6),
-              blurRadius: 8)] : null,
+    return AppPressFeedback(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: color, size: 23),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(color: color, fontSize: 10,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w500)),
+          const SizedBox(height: 3),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: active ? 24 : 0,
+            height: 2,
+            decoration: BoxDecoration(
+              color: Raven23PlayerApp.ravenRed,
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: active ? [BoxShadow(
+                color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.6),
+                blurRadius: 8)] : null,
+            ),
           ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }
-
 class _EmptyVideos extends StatelessWidget {
   const _EmptyVideos();
 
