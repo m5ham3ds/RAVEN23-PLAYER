@@ -14,6 +14,7 @@ import 'package:raven23/screens/common/player.dart';
 import '../app.dart';
 import '../models/media_item.dart';
 import '../services/android_media_library.dart';
+import '../services/playback_progress_store.dart';
 import '../widgets/app_press_feedback.dart';
 
 class PlayerScreen extends StatefulWidget {

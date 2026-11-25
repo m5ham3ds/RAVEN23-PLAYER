@@ -17,9 +17,12 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private val channelName = "com.m5ham3ds.raven23.player/media_library"
+    private val mediaIoExecutor: ExecutorService = Executors.newFixedThreadPool(2)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -29,13 +32,21 @@ class MainActivity : FlutterActivity() {
                     when (call.method) {
                         "listVideos" -> result.success(scanMediaLibrary())
                         "listRaven23Downloads" -> result.success(queryRaven23Downloads())
-                        "getVideoThumbnail" -> result.success(getVideoThumbnail(call.argument<String>("uri")))
+                        "getVideoThumbnail" -> runMediaIo(result) {
+                            getVideoThumbnail(call.argument<String>("uri"))
+                        }
                         "cachePlaybackUri" -> {
                             val rawUri = call.argument<String>("uri")
                             if (rawUri.isNullOrBlank()) {
                                 result.error("INVALID_URI", "Playback URI is required.", null)
                             } else {
-                                result.success(copyUriToCache(Uri.parse(rawUri), call.argument<String>("preferredName"), "playback").absolutePath)
+                                runMediaIo(result) {
+                                    copyUriToCache(
+                                        Uri.parse(rawUri),
+                                        call.argument<String>("preferredName"),
+                                        "playback",
+                                    ).absolutePath
+                                }
                             }
                         }
                         "deletePlaybackCache" -> {
@@ -51,13 +62,13 @@ class MainActivity : FlutterActivity() {
                             if (rawUri.isNullOrBlank()) {
                                 result.error("INVALID_URI", "Subtitle URI is required.", null)
                             } else {
-                                result.success(
+                                runMediaIo(result) {
                                     copyUriToCache(
                                         Uri.parse(rawUri),
                                         call.argument<String>("displayName"),
                                         "subtitles",
-                                    ).absolutePath,
-                                )
+                                    ).absolutePath
+                                }
                             }
                         }
                         "cacheContentUri" -> {
@@ -65,13 +76,13 @@ class MainActivity : FlutterActivity() {
                             if (rawUri.isNullOrBlank()) {
                                 result.error("INVALID_URI", "Media URI is required.", null)
                             } else {
-                                result.success(
+                                runMediaIo(result) {
                                     copyUriToCache(
                                         Uri.parse(rawUri),
                                         call.argument<String>("preferredName"),
                                         "transfer",
-                                    ).absolutePath,
-                                )
+                                    ).absolutePath
+                                }
                             }
                         }
                         else -> result.notImplemented()
@@ -82,6 +93,30 @@ class MainActivity : FlutterActivity() {
                     result.error("MEDIA_LIBRARY_ERROR", error.message, null)
                 }
             }
+    }
+
+    /**
+     * ContentProvider reads may span the complete Media3 export duration.
+     * Never block Android's UI thread while copying a large media stream.
+     */
+    private fun <T> runMediaIo(
+        result: MethodChannel.Result,
+        operation: () -> T,
+    ) {
+        mediaIoExecutor.execute {
+            try {
+                val value = operation()
+                runOnUiThread { result.success(value) }
+            } catch (error: SecurityException) {
+                runOnUiThread {
+                    result.error("MEDIA_PERMISSION_DENIED", error.message, null)
+                }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    result.error("MEDIA_LIBRARY_ERROR", error.message, null)
+                }
+            }
+        }
     }
 
     /**
@@ -176,6 +211,11 @@ class MainActivity : FlutterActivity() {
             throw SecurityException("Only temporary RAVEN23 Player playback files can be deleted.")
         }
         return !target.exists() || target.delete()
+    }
+
+    override fun onDestroy() {
+        mediaIoExecutor.shutdown()
+        super.onDestroy()
     }
 
     private fun scanMediaLibrary(): Map<String, Any> {
