@@ -177,6 +177,12 @@ class MediaItem {
     }
 
     final title = row['title']?.toString().trim();
+    final rawPlayable = row['isPlayable'];
+    final playableFlag = rawPlayable == true ||
+        (rawPlayable is num && rawPlayable != 0) ||
+        rawPlayable?.toString().toLowerCase() == 'true' ||
+        rawPlayable?.toString() == '1';
+    final videoUri = row['videoUri']?.toString() ?? '';
     final subtitleUri = row['subtitleUri']?.toString() ?? '';
     final subtitleName = row['subtitleName']?.toString() ?? '';
     final subtitles = subtitleUri.isEmpty
@@ -201,7 +207,7 @@ class MediaItem {
           ? title!
           : (payload['title']?.toString() ?? 'RAVEN23 video'),
       origin: MediaOrigin.raven23Download,
-      contentUri: row['videoUri']?.toString() ?? '',
+      contentUri: videoUri,
       relativePath: 'RAVEN23 Downloads',
       durationMs: (row['durationMs'] as num?)?.toInt() ??
           (row['expectedDurationMs'] as num?)?.toInt() ?? 0,
@@ -220,8 +226,7 @@ class MediaItem {
       downloadState: row['state']?.toString(),
       downloadProgress: (row['progress'] as num?)?.toDouble(),
       sourceData: payload,
-      isPlayable: row['isPlayable'] == true &&
-          row['videoUri']?.toString().startsWith('content://') == true,
+      isPlayable: playableFlag && videoUri.startsWith('content://'),
     );
   }
 

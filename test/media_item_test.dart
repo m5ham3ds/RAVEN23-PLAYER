@@ -22,7 +22,7 @@ void main() {
         'videoUri': 'content://com.m5ham3d.raven23.offline-library/downloads/media-episode-44/video',
         'durationMs': 2400000,
         'sizeBytes': 2048,
-        'isPlayable': true,
+        'isPlayable': 1,
         'downloadDataJson': '{"title":"Episode 4","subtitle":"S02 • E04 First Light • Server","streamIdentity":{"source":"offline"}}',
       });
 
