@@ -26,6 +26,7 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen>
     with SingleTickerProviderStateMixin {
   final AndroidMediaLibrary _library = AndroidMediaLibrary();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final TransferService _transfer = TransferService(_library);
   final TextEditingController _search = TextEditingController();
   PlaybackProgressStore? _progress;
@@ -239,12 +240,17 @@ class _LibraryScreenState extends State<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _drawerOpen || _tab == 0,
+      canPop: _tab == 0 && !_drawerOpen,
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop || _drawerOpen) return;
-        if (_tab != 0) _selectTab(0);
+        if (didPop) return;
+        if (_drawerOpen) {
+          _scaffoldKey.currentState?.closeDrawer();
+        } else {
+          _selectTab(0);
+        }
       },
       child: Scaffold(
+        key: _scaffoldKey,
         drawer: _drawer(),
       onDrawerChanged: (open) {
         if (_drawerOpen != open && mounted) {
@@ -1052,6 +1058,8 @@ class _MediaThumbnail extends StatelessWidget {
   final double radius;
 
   static final AndroidMediaLibrary _library = AndroidMediaLibrary();
+  static final Map<String, Future<Uint8List?>> _thumbnailFutures =
+      <String, Future<Uint8List?>>{};
 
   String? get _posterUrl {
     final direct = item.posterUrl?.trim();
@@ -1073,6 +1081,19 @@ class _MediaThumbnail extends StatelessWidget {
     return 'https://image.tmdb.org/t/p/w500/$path';
   }
 
+  Future<Uint8List?> _thumbnailFuture() {
+    final uri = item.contentUri.trim();
+    if (uri.isEmpty) return Future<Uint8List?>.value(null);
+    final cached = _thumbnailFutures[uri];
+    if (cached != null) return cached;
+    if (_thumbnailFutures.length >= 128) {
+      _thumbnailFutures.remove(_thumbnailFutures.keys.first);
+    }
+    final future = _library.videoThumbnail(uri);
+    _thumbnailFutures[uri] = future;
+    return future;
+  }
+
   Widget _placeholder() => DecoratedBox(
         decoration: const BoxDecoration(color: Color(0xFF171717)),
         child: Center(
@@ -1086,48 +1107,48 @@ class _MediaThumbnail extends StatelessWidget {
         ),
       );
 
+  Widget _posterFallback() {
+    final poster = _posterUrl;
+    if (poster == null) return _placeholder();
+    return Image.network(
+      poster,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, __, ___) => _placeholder(),
+    );
+  }
+
   Widget _frame(Uint8List bytes) => Image.memory(
         bytes,
         fit: BoxFit.cover,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _placeholder(),
+        errorBuilder: (_, __, ___) => _posterFallback(),
       );
 
   @override
   Widget build(BuildContext context) {
-    final poster = _posterUrl;
-    late final Widget image;
-    if (poster != null) {
-      image = Image.network(
-        poster,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => _nativeThumbnail(),
-      );
-    } else {
-      image = _nativeThumbnail();
-    }
     final clipped = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: image,
+      child: FutureBuilder<Uint8List?>(
+        future: _thumbnailFuture(),
+        builder: (context, snapshot) {
+          final bytes = snapshot.data;
+          if (bytes != null && bytes.isNotEmpty) return _frame(bytes);
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _placeholder();
+          }
+          // Prefer the decoded frame; poster artwork is only the fallback.
+          return _posterFallback();
+        },
+      ),
     );
     if (width != null || height != null) {
       return SizedBox(width: width, height: height, child: clipped);
     }
     return SizedBox.expand(child: clipped);
   }
-
-  Widget _nativeThumbnail() => FutureBuilder<Uint8List?>(
-        future: _library.videoThumbnail(item.contentUri),
-        builder: (context, snapshot) {
-          final bytes = snapshot.data;
-          if (bytes != null && bytes.isNotEmpty) return _frame(bytes);
-          return _placeholder();
-        },
-      );
 }
-
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.icon, required this.title,
     this.trailing, this.onAll});
