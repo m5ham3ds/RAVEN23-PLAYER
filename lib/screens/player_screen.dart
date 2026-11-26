@@ -16,6 +16,7 @@ import '../models/media_item.dart';
 import '../services/android_media_library.dart';
 import '../services/playback_progress_store.dart';
 import '../widgets/app_press_feedback.dart';
+import '../services/player_ambient_theme_controller.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({
@@ -35,6 +36,8 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final AndroidMediaLibrary _library = AndroidMediaLibrary();
+  final PlayerAmbientThemeController _ambientTheme =
+      PlayerAmbientThemeController();
   bool _preparing = true;
   String? _error;
   String? _offlineFilePath;
@@ -54,6 +57,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void initState() {
     super.initState();
     unawaited(_prepareOriginalPlayer());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _ambientTheme.attach(context, widget.item);
   }
 
   String _safeFileStem(String title) {
@@ -330,6 +339,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    _ambientTheme.dispose();
     final path = _offlineFilePath;
     if (path != null && path.isNotEmpty) {
       // Let BetterPlayer close its file descriptor before deleting the

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:raven23/constants/app_constants.dart' show sharedPrefsSingleton;
 import 'package:raven23/provider/wellness_provider.dart';
+import 'package:raven23/provider/app_dependency_provider.dart';
+
+import 'utils/player_language.dart';
 import 'package:raven23/provider/settings_provider.dart';
 import 'package:raven23/singleton/sharedpreferences_singleton.dart';
 
@@ -50,6 +53,18 @@ MIXPANEL_API_KEY=
     settings.getAutoLoadSources(),
     settings.getStreamingDnd(),
   ]);
+  final dependencies = AppDependencyProvider();
+  await Future.wait<void>([
+    dependencies.getOccasionalTheme(),
+    dependencies.getAmbientMode(),
+  ]);
+
+  // Migrate obsolete language preferences without changing System selection.
+  final language = PlayerLanguage.normalizePreference(settings.appLanguage);
+  if (language != settings.appLanguage) settings.appLanguage = language;
+
   settings.completeHydration();
-  runApp(Raven23PlayerApp(settings: settings));
+  runApp(
+    Raven23PlayerApp(settings: settings, dependencies: dependencies),
+  );
 }

@@ -8,6 +8,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:raven23/design/app_palette.dart';
+import 'package:raven23/design/app_tokens.dart';
+import 'package:raven23/provider/app_dependency_provider.dart';
 import 'package:raven23/mobile/widgets/settings_kit.dart';
 import 'package:raven23/mobile/widgets/page_kit.dart';
 import 'package:raven23/provider/settings_provider.dart';
@@ -22,6 +24,7 @@ import '../widgets/app_press_feedback.dart';
 import 'player_screen.dart';
 import 'app_language_choose_screen.dart';
 import 'player_settings.dart';
+import '../widgets/occasional_theme_choice_tile.dart';
 
 enum LibraryFilter { all, raven23, device }
 
@@ -586,30 +589,41 @@ class _LibraryScreenState extends State<LibraryScreen>
 
   Widget _settings(List<MediaItem> videos) {
     final settings = context.watch<SettingsProvider>();
+    final appDependencies = context.watch<AppDependencyProvider>();
+    final occasionalCatalog = appDependencies.occasionalThemeCatalog;
+    final occasionalThemes = appDependencies.availableOccasionalThemes;
     final palette = AppPalette.of(context);
-    final language = _currentLanguage(settings.appLanguage);
+    final language = _currentLanguage(
+      settings.appLanguage,
+      context.locale.languageCode,
+    );
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 22, 18, 30),
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.gutter(context),
+        AppSpace.sm,
+        AppSpace.gutter(context),
+        AppSpace.xxxl + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
         Text(
           tr('settings'),
           style: const TextStyle(
-            fontSize: 27,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.35,
           ),
         ),
         const SizedBox(height: 5),
         Text(
           'Manage your player and media library',
-          style: TextStyle(color: palette.mutedText),
+          style: AppType.metadata.copyWith(color: palette.mutedText),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 18),
 
         // Match the supplied settings references: App language first.
         Material(
           color: palette.surface,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadii.card),
           clipBehavior: Clip.antiAlias,
           child: ListRow(
             icon: PhosphorIcons.translate(),
@@ -618,29 +632,26 @@ class _LibraryScreenState extends State<LibraryScreen>
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClipOval(
-                  child: Image.asset(
-                    'packages/raven23/assets/images/country_flags/${language.flag}.png',
-                    width: 34,
-                    height: 34,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.language,
-                      color: palette.mutedText,
-                      size: 28,
-                    ),
+                if (language.flag != null)
+                  LanguageFlag(
+                    'packages/raven23/assets/images/country_flags/undefined.png',
+                  )
+                else
+                  Icon(
+                    PhosphorIcons.deviceMobile(),
+                    color: palette.mutedText,
+                    size: 20,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  tr(language.translationKey),
-                  style: TextStyle(color: palette.mutedText, fontSize: 15),
-                ),
                 const SizedBox(width: 8),
+                Text(
+                  language.label,
+                  style: AppType.body.copyWith(color: palette.mutedText),
+                ),
+                const SizedBox(width: 4),
                 Icon(
                   Icons.chevron_right_rounded,
                   color: palette.mutedText,
-                  size: 22,
+                  size: 18,
                 ),
               ],
             ),
@@ -668,6 +679,40 @@ class _LibraryScreenState extends State<LibraryScreen>
               },
               onChanged: (value) => settings.appTheme = value,
             ),
+            SwitchRow(
+              icon: PhosphorIcons.imageSquare(),
+              label: tr('ambient_mode'),
+              subtitle: tr('ambient_mode_description'),
+              value: appDependencies.ambientModeEnabled,
+              onChanged: (value) =>
+                  appDependencies.ambientModeEnabled = value,
+            ),
+            if (occasionalCatalog.enabled)
+              SwitchRow(
+                icon: PhosphorIcons.sparkle(),
+                label: tr('seasonal_themes'),
+                subtitle: tr('seasonal_themes_description'),
+                value: appDependencies.occasionalThemeEnabled,
+                onChanged: (value) =>
+                    appDependencies.occasionalThemeEnabled = value,
+              ),
+            if (occasionalCatalog.enabled &&
+                appDependencies.occasionalThemeEnabled &&
+                occasionalCatalog.allowUserSelection &&
+                occasionalThemes.isNotEmpty)
+              OccasionalThemeChoiceTile(provider: appDependencies),
+            if (occasionalCatalog.enabled &&
+                appDependencies.occasionalThemeEnabled &&
+                occasionalCatalog.effectsEnabled &&
+                occasionalCatalog.allowUserEffectsToggle)
+              SwitchRow(
+                icon: PhosphorIcons.confetti(),
+                label: tr('seasonal_effects'),
+                subtitle: tr('seasonal_effects_description'),
+                value: appDependencies.occasionalEffectsEnabled,
+                onChanged: (value) =>
+                    appDependencies.occasionalEffectsEnabled = value,
+              ),
             ListRow(
               icon: PhosphorIcons.play(),
               label: tr('player_settings'),
@@ -759,12 +804,19 @@ class _LibraryScreenState extends State<LibraryScreen>
     );
   }
 
-  ({String flag, String translationKey}) _currentLanguage(String code) {
+  ({String? flag, String label}) _currentLanguage(
+    String code,
+    String currentLocale,
+  ) {
+    if (code == 'system') {
+      return (
+        flag: null,
+        label: currentLocale == 'ar' ? 'لغة النظام' : 'System language',
+      );
+    }
     return switch (code) {
-      'ar' => (flag: 'united-arab-emirates', translationKey: 'arabic'),
-      'es' => (flag: 'spain', translationKey: 'spanish'),
-      'hi' => (flag: 'india', translationKey: 'hindi'),
-      _ => (flag: 'united-kingdom', translationKey: 'english'),
+      'ar' => (flag: 'united-arab-emirates', label: tr('arabic')),
+      _ => (flag: 'united-kingdom', label: tr('english')),
     };
   }
 

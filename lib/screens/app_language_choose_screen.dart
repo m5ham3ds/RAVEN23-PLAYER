@@ -7,14 +7,15 @@ import 'package:raven23/mobile/widgets/page_kit.dart';
 import 'package:raven23/mobile/widgets/settings_kit.dart';
 import 'package:raven23/provider/settings_provider.dart';
 
+import '../utils/player_language.dart';
+
 class AppLanguageChooseScreen extends StatelessWidget {
   const AppLanguageChooseScreen({super.key});
 
   static const _languages = <_AppLanguageOption>[
-    _AppLanguageOption('en', 'english', 'united-kingdom'),
-    _AppLanguageOption('ar', 'arabic', 'united-arab-emirates'),
-    _AppLanguageOption('es', 'spanish', 'spain'),
-    _AppLanguageOption('hi', 'hindi', 'india'),
+    _AppLanguageOption(PlayerLanguage.system, null),
+    _AppLanguageOption('en', 'united-kingdom'),
+    _AppLanguageOption('ar', 'united-arab-emirates'),
   ];
 
   @override
@@ -41,30 +42,31 @@ class AppLanguageChooseScreen extends StatelessWidget {
                 children: [
                   for (final language in _languages)
                     SelectableRow(
-                      label: tr(language.translationKey),
-                      leading: ClipOval(
-                        child: Image.asset(
-                          'packages/raven23/assets/images/country_flags/${language.flag}.png',
-                          width: 30,
-                          height: 30,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: palette.idleFill,
-                              shape: BoxShape.circle,
+                      label: language.code == PlayerLanguage.system
+                          ? (context.locale.languageCode == 'ar'
+                              ? 'لغة النظام'
+                              : 'System language')
+                          : tr(language.code == 'ar' ? 'arabic' : 'english'),
+                      leading: language.flag == null
+                          ? Icon(
+                              Icons.phone_android_rounded,
+                              color: palette.mutedText,
+                              size: 20,
+                            )
+                          : ClipOval(
+                              child: Image.asset(
+                                'packages/raven23/assets/images/country_flags/${language.flag}.png',
+                                width: 24,
+                                height: 24,
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                            child: const SizedBox.square(
-                              dimension: 30,
-                              child: Icon(Icons.language, size: 18),
-                            ),
-                          ),
-                        ),
-                      ),
                       selected: settings.appLanguage == language.code,
                       onTap: () {
                         settings.appLanguage = language.code;
-                        EasyLocalization.of(context)!
-                            .setLocale(Locale(language.code));
+                        EasyLocalization.of(context)!.setLocale(
+                          PlayerLanguage.resolve(language.code),
+                        );
                       },
                     ),
                 ],
@@ -78,8 +80,7 @@ class AppLanguageChooseScreen extends StatelessWidget {
 }
 
 class _AppLanguageOption {
-  const _AppLanguageOption(this.code, this.translationKey, this.flag);
+  const _AppLanguageOption(this.code, this.flag);
   final String code;
-  final String translationKey;
-  final String flag;
+  final String? flag;
 }
