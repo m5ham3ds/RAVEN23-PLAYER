@@ -50,23 +50,16 @@ class Raven23PlayerApp extends StatelessWidget {
         path: 'packages/raven23/assets/translations',
         fallbackLocale: const Locale('en'),
         startLocale: PlayerLanguage.resolve(settings.appLanguage),
-        child: _LocalizedPlayerApp(
-          settings: settings,
-          dependencies: dependencies,
-        ),
+        child: _LocalizedPlayerApp(settings: settings),
       ),
     );
   }
 }
 
 class _LocalizedPlayerApp extends StatefulWidget {
-  const _LocalizedPlayerApp({
-    required this.settings,
-    required this.dependencies,
-  });
+  const _LocalizedPlayerApp({required this.settings});
 
   final SettingsProvider settings;
-  final AppDependencyProvider dependencies;
 
   @override
   State<_LocalizedPlayerApp> createState() => _LocalizedPlayerAppState();

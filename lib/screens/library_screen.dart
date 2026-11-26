@@ -634,7 +634,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               children: [
                 if (language.flag != null)
                   LanguageFlag(
-                    'packages/raven23/assets/images/country_flags/undefined.png',
+                    'packages/raven23/assets/images/country_flags/\${language.flag}.png',
                   )
                 else
                   Icon(
