@@ -620,8 +620,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               children: [
                 ClipOval(
                   child: Image.asset(
-                    'packages/raven23/assets/images/country_flags/' +
-                        language.flag + '.png',
+                    'packages/raven23/assets/images/country_flags/${language.flag}.png',
                     width: 34,
                     height: 34,
                     fit: BoxFit.cover,
@@ -688,7 +687,7 @@ class _LibraryScreenState extends State<LibraryScreen>
         _SettingRow(
           icon: Icons.video_library_outlined,
           title: 'Media library',
-          subtitle: videos.length.toString() + ' videos indexed on this device',
+          subtitle: '${videos.length} videos indexed on this device',
           onTap: _refresh,
           trailing: const Icon(Icons.refresh_rounded, color: Colors.white54),
         ),

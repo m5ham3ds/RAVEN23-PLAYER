@@ -10,7 +10,7 @@ import 'package:raven23/provider/wellness_provider.dart';
 import 'screens/library_screen.dart';
 
 class Raven23PlayerApp extends StatelessWidget {
-  Raven23PlayerApp({super.key, required this.settings});
+  const Raven23PlayerApp({super.key, required this.settings});
 
   final SettingsProvider settings;
 

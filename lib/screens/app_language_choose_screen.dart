@@ -44,8 +44,7 @@ class AppLanguageChooseScreen extends StatelessWidget {
                       label: tr(language.translationKey),
                       leading: ClipOval(
                         child: Image.asset(
-                          'packages/raven23/assets/images/country_flags/' +
-                              language.flag + '.png',
+                          'packages/raven23/assets/images/country_flags/${language.flag}.png',
                           width: 30,
                           height: 30,
                           fit: BoxFit.cover,
