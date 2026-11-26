@@ -3,10 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/media_item.dart';
 import 'package:raven23/provider/app_dependency_provider.dart';
 import 'package:raven23/services/ambient_theme_service.dart';
 
+import '../models/media_item.dart';
 import 'android_media_library.dart';
 
 /// Applies the original RAVEN23 ambient-color behavior to the artwork of the
@@ -126,8 +126,8 @@ class PlayerAmbientThemeController {
       return null;
     }
     final buckets = <int, _AmbientColorBucket>{};
-    final xStep = (width / 48).ceil().clamp(1, width);
-    final yStep = (height / 48).ceil().clamp(1, height);
+    final xStep = (width / 48).ceil().clamp(1, width).toInt();
+    final yStep = (height / 48).ceil().clamp(1, height).toInt();
 
     for (var y = 0; y < height; y += yStep) {
       for (var x = 0; x < width; x += xStep) {

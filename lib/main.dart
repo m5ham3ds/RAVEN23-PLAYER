@@ -2,14 +2,14 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:raven23/constants/app_constants.dart' show sharedPrefsSingleton;
-import 'package:raven23/provider/wellness_provider.dart';
+import 'package:raven23/constants/app_constants.dart' show sharedPrefsSingleton;
 import 'package:raven23/provider/app_dependency_provider.dart';
-
-import 'utils/player_language.dart';
 import 'package:raven23/provider/settings_provider.dart';
+import 'package:raven23/provider/wellness_provider.dart';
 import 'package:raven23/singleton/sharedpreferences_singleton.dart';
 
 import 'app.dart';
+import 'utils/player_language.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

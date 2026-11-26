@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:raven23/design/app_palette.dart';
 import 'package:raven23/design/app_tokens.dart';
-import 'package:raven23/provider/app_dependency_provider.dart';
 import 'package:raven23/mobile/widgets/page_kit.dart';
 import 'package:raven23/mobile/widgets/settings_kit.dart';
+import 'package:raven23/provider/app_dependency_provider.dart';
 
 import 'app_press_feedback.dart';
 

@@ -3,17 +3,17 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:raven23/design/app_palette.dart';
 import 'package:raven23/design/app_tokens.dart';
-import 'package:raven23/provider/app_dependency_provider.dart';
-import 'package:raven23/mobile/widgets/settings_kit.dart';
 import 'package:raven23/mobile/widgets/page_kit.dart';
+import 'package:raven23/mobile/widgets/settings_kit.dart';
+import 'package:raven23/provider/app_dependency_provider.dart';
 import 'package:raven23/provider/settings_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../app.dart';
 import '../models/media_item.dart';
