@@ -12,6 +12,7 @@ import 'package:raven23/widgets/occasional_effect_overlay.dart';
 
 import 'screens/library_screen.dart';
 import 'utils/player_language.dart';
+import 'utils/player_asset_loader.dart';
 
 class Raven23PlayerApp extends StatelessWidget {
   const Raven23PlayerApp({
@@ -47,7 +48,9 @@ class Raven23PlayerApp extends StatelessWidget {
       ],
       child: EasyLocalization(
         supportedLocales: const [Locale('en'), Locale('ar')],
-        path: 'packages/raven23/assets/translations',
+        path: 'assets/translations',
+        assetLoader: const PlayerAssetLoader(),
+        useFallbackTranslations: true,
         fallbackLocale: const Locale('en'),
         saveLocale: false,
         startLocale: PlayerLanguage.resolve(settings.appLanguage),

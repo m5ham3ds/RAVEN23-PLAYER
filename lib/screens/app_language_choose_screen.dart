@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:raven23/constants/app_constants.dart' show sharedPrefsSingleton;
 import 'package:raven23/design/app_palette.dart';
 import 'package:raven23/design/app_tokens.dart';
 import 'package:raven23/mobile/widgets/page_kit.dart';
@@ -43,9 +44,7 @@ class AppLanguageChooseScreen extends StatelessWidget {
                   for (final language in _languages)
                     SelectableRow(
                       label: language.code == PlayerLanguage.system
-                          ? (context.locale.languageCode == 'ar'
-                              ? 'لغة النظام'
-                              : 'System language')
+                          ? tr('player_system_language')
                           : tr(language.code == 'ar' ? 'arabic' : 'english'),
                       leading: language.flag == null
                           ? Icon(
@@ -62,8 +61,12 @@ class AppLanguageChooseScreen extends StatelessWidget {
                               ),
                             ),
                       selected: settings.appLanguage == language.code,
-                      onTap: () {
+                      onTap: () async {
                         settings.appLanguage = language.code;
+                        await sharedPrefsSingleton.setString(
+                          PlayerLanguage.preferenceKey,
+                          language.code,
+                        );
                         EasyLocalization.of(context)!.setLocale(
                           PlayerLanguage.resolve(language.code),
                         );

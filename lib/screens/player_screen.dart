@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:raven23/constants/app_constants.dart';
@@ -308,8 +309,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }).firstOrNull;
     if (target == null) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(
-          content: Text('This episode is no longer available offline.'),
+        SnackBar(
+          content: Text(tr('player_episode_offline_unavailable')),
         ),
       );
       return;
@@ -374,8 +375,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 const SizedBox(height: 16),
                 Text(
                   _isPrimaryDownload
-                      ? 'Preparing the private RAVEN23 download'
-                      : 'Preparing video',
+                      ? tr('player_preparing_private_download')
+                      : tr('player_preparing_video'),
                   style: const TextStyle(color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
@@ -414,7 +415,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       unawaited(_prepareOriginalPlayer());
                     },
                     icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Retry'),
+                    label: Text(tr('retry')),
                   ),
                 ),
               ],
@@ -432,11 +433,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final sourceUri = _localSourceUri();
     final isTv = _isTelevision;
     if (!_isPrimaryDownload && (sourceUri == null || sourceUri.isEmpty)) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
         body: Center(
           child: Text(
-            'This video no longer has a readable media source.',
+            tr('player_unreadable_media_source'),
             textAlign: TextAlign.center,
           ),
         ),

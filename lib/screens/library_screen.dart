@@ -187,7 +187,7 @@ class _LibraryScreenState extends State<LibraryScreen>
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Transfer could not start: $error')),
+        SnackBar(content: Text(tr('player_transfer_failed', namedArgs: {'error': error.toString()}))),
       );
     }
   }
@@ -215,7 +215,7 @@ class _LibraryScreenState extends State<LibraryScreen>
     if (!mounted) return;
     if (videos == null || videos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No videos are available to play yet.')),
+        SnackBar(content: Text(tr('player_no_videos_available'))),
       );
       return;
     }
@@ -289,8 +289,8 @@ class _LibraryScreenState extends State<LibraryScreen>
                 autofocus: true,
                 cursorColor: Raven23PlayerApp.ravenRed,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Search your videos',
+                decoration: InputDecoration(
+                  hintText: tr('player_search_videos'),
                   hintStyle: TextStyle(color: Colors.white38),
                   border: InputBorder.none,
                   isCollapsed: true,
@@ -315,14 +315,14 @@ class _LibraryScreenState extends State<LibraryScreen>
                   context: context,
                   applicationName: 'RAVEN23 Player',
                   applicationVersion: '0.1.0',
-                  children: const [Text('Your videos, one library.')],
+                  children: [Text(tr('player_tagline'))],
                 );
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'refresh', child: Text('Refresh library')),
-              PopupMenuItem(value: 'settings', child: Text('Settings')),
-              PopupMenuItem(value: 'about', child: Text('About')),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'refresh', child: Text(tr('player_refresh_library'))),
+              PopupMenuItem(value: 'settings', child: Text(tr('settings'))),
+              PopupMenuItem(value: 'about', child: Text(tr('about'))),
             ],
             ),
           ),
@@ -338,7 +338,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           if (snapshot.hasError || _error != null) {
             return _MessageView(
               icon: Icons.video_library_outlined,
-              title: 'Your library is waiting',
+              title: tr('player_library_waiting'),
               message: _error ?? snapshot.error.toString(),
               onRefresh: _refresh,
             );
@@ -369,8 +369,8 @@ class _LibraryScreenState extends State<LibraryScreen>
                           : kAlwaysCompleteAnimation,
                       child: RepaintBoundary(
                         child: switch (tab) {
-                          1 => _collection(videos, 'All Videos'),
-                          3 => _collection(videos, 'Video Library'),
+                          1 => _collection(videos, tr('player_all_videos')),
+                          3 => _collection(videos, tr('player_video_library')),
                           4 => _settings(videos),
                           _ => _home(videos),
                         },
@@ -407,7 +407,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               children: [
                 _Stat(
                   icon: Icons.play_arrow_rounded,
-                  label: 'All Videos',
+                  label: tr('player_all_videos'),
                   value: _count(videos.length),
                   selected: true,
                   onTap: () => _selectTab(1),
@@ -415,7 +415,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                 const SizedBox(width: 9),
                 _Stat(
                   icon: Icons.folder_outlined,
-                  label: 'On Device',
+                  label: tr('player_on_device'),
                   value: _count(device),
                   onTap: () => _selectFilterTab(LibraryFilter.device),
                 ),
@@ -431,7 +431,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   future: _recentLoad,
                   builder: (context, snapshot) => _Stat(
                     icon: Icons.schedule_rounded,
-                    label: 'Recent',
+                    label: tr('recent'),
                     value: _count(snapshot.data?.length ?? 0),
                     onTap: () => _selectTab(1),
                   ),
@@ -457,7 +457,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           const SizedBox(height: 23),
           _SectionTitle(
             icon: Icons.video_library_rounded,
-            title: 'All Videos',
+            title: tr('player_all_videos'),
             trailing: _count(videos.length),
             onAll: () => _selectTab(1),
           ),
@@ -476,7 +476,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           if (videos.isNotEmpty)
             TextButton(
               onPressed: () => _selectTab(1),
-              child: const Text('Explore your full video library'),
+              child: Text(tr('player_explore_library')),
             ),
         ],
       ),
@@ -499,18 +499,18 @@ class _LibraryScreenState extends State<LibraryScreen>
               Text(title, style: const TextStyle(
                 fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
               const SizedBox(height: 5),
-              Text('${items.length} videos available on this device',
+              Text(tr('player_videos_available', namedArgs: {'count': items.length.toString()}),
                   style: const TextStyle(color: Colors.white54, fontSize: 13)),
               if (_tab == 3) ...[
                 const SizedBox(height: 14),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(children: [
-                    _FilterChip(label: 'All', count: videos.length,
+                    _FilterChip(label: tr('filter_all'), count: videos.length,
                       selected: _filter == LibraryFilter.all,
                       onTap: () => setState(() => _filter = LibraryFilter.all)),
                     const SizedBox(width: 8),
-                    _FilterChip(label: 'On Device', count: device,
+                    _FilterChip(label: tr('player_on_device'), count: device,
                       selected: _filter == LibraryFilter.device,
                       onTap: () => setState(() => _filter = LibraryFilter.device)),
                     const SizedBox(width: 8),
@@ -522,20 +522,20 @@ class _LibraryScreenState extends State<LibraryScreen>
               ],
               const SizedBox(height: 12),
               Row(children: [
-                const Text('YOUR COLLECTION', style: TextStyle(
+                Text(tr('player_your_collection'), style: TextStyle(
                   color: Colors.white38, fontSize: 10,
                   fontWeight: FontWeight.w800, letterSpacing: 1.8)),
                 const Spacer(),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'List view',
+                  tooltip: tr('manga_list_view'),
                   onPressed: () => setState(() => _grid = false),
                   icon: Icon(Icons.view_list_rounded,
                       color: !_grid ? Raven23PlayerApp.ravenRed : Colors.white54),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Grid view',
+                  tooltip: tr('manga_grid_view'),
                   onPressed: () => setState(() => _grid = true),
                   icon: Icon(Icons.grid_view_rounded,
                       color: _grid ? Raven23PlayerApp.ravenRed : Colors.white54),
@@ -548,12 +548,12 @@ class _LibraryScreenState extends State<LibraryScreen>
           child: items.isEmpty
               ? _MessageView(
                   icon: Icons.movie_filter_outlined,
-                  title: _query.isNotEmpty ? 'No matches found' : 'No videos yet',
+                  title: _query.isNotEmpty ? tr('player_no_matches_found') : tr('player_no_videos_yet'),
                   message: _query.isNotEmpty
-                      ? 'Try another title or clear your search.'
+                      ? tr('player_try_another_title')
                       : _filter == LibraryFilter.raven23
-                          ? 'RAVEN23 downloads and shared library items appear here, including downloads not exported to public storage.'
-                          : 'Videos stored on this device will appear here.',
+                          ? tr('player_raven_downloads_empty')
+                          : tr('player_device_videos_empty'),
                   onRefresh: _query.isNotEmpty ? _endSearch : _refresh,
                 )
               : _grid
@@ -593,10 +593,7 @@ class _LibraryScreenState extends State<LibraryScreen>
     final occasionalCatalog = appDependencies.occasionalThemeCatalog;
     final occasionalThemes = appDependencies.availableOccasionalThemes;
     final palette = AppPalette.of(context);
-    final language = _currentLanguage(
-      settings.appLanguage,
-      context.locale.languageCode,
-    );
+    final language = _currentLanguage(settings.appLanguage);
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpace.gutter(context),
@@ -615,53 +612,92 @@ class _LibraryScreenState extends State<LibraryScreen>
         ),
         const SizedBox(height: 5),
         Text(
-          'Manage your player and media library',
+          tr('player_manage_library'),
           style: AppType.metadata.copyWith(color: palette.mutedText),
         ),
         const SizedBox(height: 18),
 
-        // Match the supplied settings references: App language first.
         Material(
           color: palette.surface,
           borderRadius: BorderRadius.circular(AppRadii.card),
           clipBehavior: Clip.antiAlias,
-          child: ListRow(
-            icon: PhosphorIcons.translate(),
-            label: tr('app_language'),
-            showsNext: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (language.flag != null)
-                  LanguageFlag(
-                    'packages/raven23/assets/images/country_flags/${language.flag}.png',
-                  )
-                else
-                  Icon(
-                    PhosphorIcons.deviceMobile(),
-                    color: palette.mutedText,
-                    size: 20,
+          child: AppPressFeedback(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadii.card),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AppLanguageChooseScreen(),
                   ),
-                const SizedBox(width: 8),
-                Text(
-                  language.label,
-                  style: AppType.body.copyWith(color: palette.mutedText),
+                );
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpace.gutter(context),
+                  vertical: AppSpace.md,
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: palette.mutedText,
-                  size: 18,
+                child: Row(
+                  children: [
+                    Icon(
+                      PhosphorIcons.translate(),
+                      color: palette.mutedText,
+                      size: 22,
+                    ),
+                    const SizedBox(width: AppSpace.lg),
+                    Expanded(
+                      child: Text(
+                        tr('app_language'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.cardTitle.copyWith(
+                          fontSize: 15,
+                          color: palette.foreground,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.sm),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.sizeOf(context).width * .42,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (language.flag != null)
+                            LanguageFlag(
+                              'packages/raven23/assets/images/country_flags/${language.flag}.png',
+                            )
+                          else
+                            Icon(
+                              PhosphorIcons.deviceMobile(),
+                              color: palette.mutedText,
+                              size: 20,
+                            ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              language.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                              style: AppType.body.copyWith(
+                                color: palette.mutedText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.sm),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: palette.mutedText,
+                      size: 20,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AppLanguageChooseScreen(),
-                ),
-              );
-            },
           ),
         ),
         const SizedBox(height: 24),
@@ -724,36 +760,44 @@ class _LibraryScreenState extends State<LibraryScreen>
                 );
               },
             ),
+            ListRow(
+              icon: Icons.video_library_outlined,
+              label: tr('player_media_library'),
+              subtitle: tr(
+                'player_media_library_subtitle',
+                namedArgs: {'count': videos.length.toString()},
+              ),
+              onTap: _refresh,
+              trailing: Icon(Icons.refresh_rounded, color: palette.mutedText),
+              showsNext: false,
+            ),
+            ListRow(
+              icon: Icons.folder_shared_outlined,
+              label: tr('player_shared_library'),
+              subtitle: tr('player_shared_library_subtitle'),
+              onTap: () => _selectTab(3),
+            ),
+            ListRow(
+              icon: Icons.history_rounded,
+              label: tr('player_playback_history'),
+              subtitle: tr('player_playback_history_subtitle'),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: palette.mutedText,
+              ),
+              showsNext: false,
+            ),
+            ListRow(
+              icon: Icons.swap_horiz_rounded,
+              label: tr('player_transfer'),
+              subtitle: tr('player_transfer_subtitle'),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: palette.mutedText,
+              ),
+              showsNext: false,
+            ),
           ],
-        ),
-        const SizedBox(height: 24),
-
-        // Existing Player settings are retained below the new RAVEN23 rows.
-        _SettingRow(
-          icon: Icons.video_library_outlined,
-          title: 'Media library',
-          subtitle: '${videos.length} videos indexed on this device',
-          onTap: _refresh,
-          trailing: const Icon(Icons.refresh_rounded, color: Colors.white54),
-        ),
-        const SizedBox(height: 10),
-        _SettingRow(
-          icon: Icons.folder_shared_outlined,
-          title: 'RAVEN23 shared library',
-          subtitle: 'Shared downloads and subtitle integration',
-          onTap: () => _selectTab(3),
-        ),
-        const SizedBox(height: 10),
-        const _SettingRow(
-          icon: Icons.history_rounded,
-          title: 'Playback history',
-          subtitle: 'Resume progress is stored privately on this device',
-        ),
-        const SizedBox(height: 10),
-        const _SettingRow(
-          icon: Icons.swap_horiz_rounded,
-          title: 'Transfer',
-          subtitle: 'Share a video together with its available subtitles',
         ),
         const SizedBox(height: 28),
         Container(
@@ -786,12 +830,12 @@ class _LibraryScreenState extends State<LibraryScreen>
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Your videos, one library',
+                      tr('player_tagline'),
                       style: TextStyle(color: palette.mutedText, fontSize: 12),
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Version 0.1.0',
+                      tr('player_version', namedArgs: {'version': '0.1.0'}),
                       style: TextStyle(color: palette.mutedText, fontSize: 10),
                     ),
                   ],
@@ -804,14 +848,11 @@ class _LibraryScreenState extends State<LibraryScreen>
     );
   }
 
-  ({String? flag, String label}) _currentLanguage(
-    String code,
-    String currentLocale,
-  ) {
+  ({String? flag, String label}) _currentLanguage(String code) {
     if (code == 'system') {
       return (
         flag: null,
-        label: currentLocale == 'ar' ? 'لغة النظام' : 'System language',
+        label: tr('player_system_language'),
       );
     }
     return switch (code) {
@@ -829,22 +870,22 @@ class _LibraryScreenState extends State<LibraryScreen>
           padding: EdgeInsets.fromLTRB(20, 24, 20, 28),
           child: _Brand(),
         ),
-        _DrawerItem(icon: Icons.home_rounded, title: 'Home',
+        _DrawerItem(icon: Icons.home_rounded, title: tr('home'),
           selected: _tab == 0, onTap: () {
             Navigator.pop(context);
             _selectTab(0);
           }),
-        _DrawerItem(icon: Icons.video_library_rounded, title: 'All Videos',
+        _DrawerItem(icon: Icons.video_library_rounded, title: tr('player_all_videos'),
           selected: _tab == 1, onTap: () {
             Navigator.pop(context);
             _selectTab(1);
           }),
-        _DrawerItem(icon: Icons.folder_rounded, title: 'Video Library',
+        _DrawerItem(icon: Icons.folder_rounded, title: tr('player_video_library'),
           selected: _tab == 3, onTap: () {
             Navigator.pop(context);
             _selectTab(3);
           }),
-        _DrawerItem(icon: Icons.settings_rounded, title: 'Settings',
+        _DrawerItem(icon: Icons.settings_rounded, title: tr('settings'),
           selected: _tab == 4, onTap: () {
             Navigator.pop(context);
             _selectTab(4);
@@ -934,7 +975,7 @@ class _HeroBanner extends StatelessWidget {
                 fontWeight: FontWeight.w900, height: 1.05,
                 fontStyle: FontStyle.italic, letterSpacing: -1)),
             SizedBox(height: 12),
-            Text('Your videos, one library', style: TextStyle(
+            Text(tr('player_tagline'), style: TextStyle(
                 color: Colors.white70, fontSize: 13,
                 fontWeight: FontWeight.w500)),
             SizedBox(height: 12),
@@ -953,7 +994,7 @@ class _HeroBanner extends StatelessWidget {
         child: const Row(children: [
           Icon(Icons.bolt_rounded, color: Raven23PlayerApp.ravenRed, size: 14),
           SizedBox(width: 4),
-          Text('PLAY YOUR WAY', style: TextStyle(color: Colors.white70,
+          Text(tr('player_play_your_way'), style: TextStyle(color: Colors.white70,
               fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
         ]),
       )),
@@ -1138,21 +1179,21 @@ class _LibraryShortcut extends StatelessWidget {
             border: Border.all(
               color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.24)),
           ),
-          child: const Row(children: [
-            Icon(Icons.folder_open_rounded,
+          child: Row(children: [
+            const Icon(Icons.folder_open_rounded,
                 color: Raven23PlayerApp.ravenRed, size: 36),
-            SizedBox(width: 15),
+            const SizedBox(width: 15),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Video Library',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                SizedBox(height: 3),
-                Text('Browse, play, and manage your videos',
-                    style: TextStyle(color: Colors.white60, fontSize: 12)),
+                Text(tr('player_video_library'),
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
+                Text(tr('player_browse_manage_videos'),
+                    style: const TextStyle(color: Colors.white60, fontSize: 12)),
               ],
             )),
-            Icon(Icons.chevron_right_rounded, color: Colors.white, size: 28),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 28),
           ]),
         ),
       ),
@@ -1172,7 +1213,7 @@ class _ContinueSection extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _SectionTitle(icon: Icons.play_arrow_rounded,
-        title: 'Continue Watching', onAll: onAll),
+        title: tr('continue_watching'), onAll: onAll),
       const SizedBox(height: 12),
       SizedBox(height: 174, child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -1224,7 +1265,7 @@ class _ContinueCard extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 12,
                 fontWeight: FontWeight.w700)),
           const SizedBox(height: 3),
-          Text('${(fraction * 100).round()}% watched',
+          Text(tr('player_watched_percent', namedArgs: {'percent': (fraction * 100).round().toString()}),
             style: const TextStyle(color: Colors.white54, fontSize: 10)),
         ]),
       )),
@@ -1365,7 +1406,7 @@ class _SectionTitle extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(horizontal: 5)),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Text('View all', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(tr('view_all'), style: TextStyle(fontWeight: FontWeight.w700)),
             Icon(Icons.chevron_right_rounded, size: 18),
           ]),
         ),
@@ -1441,9 +1482,9 @@ class _VideoTile extends StatelessWidget {
                   PopupMenuItem(
                     value: 'play',
                     enabled: item.isPlayable,
-                    child: const Text('Play'),
+                    child: Text(tr('play')),
                   ),
-                  const PopupMenuItem(value: 'transfer', child: Text('Transfer')),
+                  PopupMenuItem(value: 'transfer', child: Text(tr('player_transfer'))),
                 ],
               ),
             ]),
@@ -1503,10 +1544,10 @@ class _GridVideo extends StatelessWidget {
                   itemBuilder: (_) => [
                     PopupMenuItem(
                       value: 'play', enabled: item.isPlayable,
-                      child: const Text('Play'),
+                      child: Text(tr('play')),
                     ),
                     const PopupMenuItem(
-                      value: 'transfer', child: Text('Transfer')),
+                      value: 'transfer', child: Text(tr('player_transfer'))),
                   ],
                 )),
             ])),
@@ -1514,7 +1555,7 @@ class _GridVideo extends StatelessWidget {
             Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
             const SizedBox(height: 5),
-            Text('${item.formattedDuration}  •  ${item.subtitles.length} subtitles',
+            Text(tr('player_subtitle_count', namedArgs: {'duration': item.formattedDuration, 'count': item.subtitles.length.toString()}),
               maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: Colors.white54, fontSize: 10)),
           ]),
@@ -1554,67 +1595,6 @@ class _FilterChip extends StatelessWidget {
       ),
     ),
   );
-}
-class _SettingRow extends StatelessWidget {
-  const _SettingRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppPalette.of(context);
-    return AppPressFeedback(
-      enabled: onTap != null,
-      child: Material(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(15),
-            child: Row(
-              children: [
-                Icon(icon, color: Raven23PlayerApp.ravenRed, size: 25),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: palette.foreground,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: palette.mutedText, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                trailing ??
-                    Icon(Icons.chevron_right_rounded, color: palette.mutedText),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 class _DrawerItem extends StatelessWidget {
   const _DrawerItem({required this.icon, required this.title,
@@ -1674,7 +1654,7 @@ class _BottomBar extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.home_rounded,
-                        label: 'Home',
+                        label: tr('home'),
                         active: selected == 0,
                         onTap: () => onSelect(0),
                       ),
@@ -1682,7 +1662,7 @@ class _BottomBar extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.video_library_rounded,
-                        label: 'Videos',
+                        label: tr('videos'),
                         active: selected == 1,
                         onTap: () => onSelect(1),
                       ),
@@ -1691,7 +1671,7 @@ class _BottomBar extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.folder_outlined,
-                        label: 'Library',
+                        label: tr('player_library'),
                         active: selected == 3,
                         onTap: () => onSelect(3),
                       ),
@@ -1699,7 +1679,7 @@ class _BottomBar extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.settings_outlined,
-                        label: 'Settings',
+                        label: tr('settings'),
                         active: selected == 4,
                         onTap: () => onSelect(4),
                       ),
@@ -1817,15 +1797,17 @@ class _EmptyVideos extends StatelessWidget {
   const _EmptyVideos();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 28),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 28),
     child: Column(children: [
-      Icon(Icons.video_collection_outlined, color: Colors.white24, size: 42),
-      SizedBox(height: 8),
-      Text('No videos found', style: TextStyle(color: Colors.white70)),
-      SizedBox(height: 4),
-      Text('Refresh your library after adding videos.',
-        style: TextStyle(color: Colors.white38, fontSize: 11)),
+      const Icon(Icons.video_collection_outlined,
+          color: Colors.white24, size: 42),
+      const SizedBox(height: 8),
+      Text(tr('player_no_videos_found'),
+          style: const TextStyle(color: Colors.white70)),
+      const SizedBox(height: 4),
+      Text(tr('player_refresh_after_adding'),
+          style: const TextStyle(color: Colors.white38, fontSize: 11)),
     ]),
   );
 }
@@ -1834,15 +1816,15 @@ class _LoadingView extends StatelessWidget {
   const _LoadingView();
 
   @override
-  Widget build(BuildContext context) => const Center(child: Column(
+  Widget build(BuildContext context) => Center(child: Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      SizedBox(width: 34, height: 34,
+      const SizedBox(width: 34, height: 34,
         child: CircularProgressIndicator(
           strokeWidth: 3, color: Raven23PlayerApp.ravenRed)),
-      SizedBox(height: 14),
-      Text('Scanning your video library',
-          style: TextStyle(color: Colors.white60, fontSize: 12)),
+      const SizedBox(height: 14),
+      Text(tr('player_scanning_library'),
+          style: const TextStyle(color: Colors.white60, fontSize: 12)),
     ],
   ));
 }
@@ -1875,7 +1857,7 @@ class _MessageView extends StatelessWidget {
             backgroundColor: Raven23PlayerApp.ravenRed,
             foregroundColor: Colors.white),
           icon: const Icon(Icons.refresh_rounded),
-          label: const Text('Refresh library'),
+          label: Text(tr('player_refresh_library')),
         ),
       ),
     ]),

@@ -11,9 +11,29 @@ void main() {
       expect(PlayerLanguage.normalizePreference('system'), 'system');
     });
 
-    test('migrates previously saved Spanish and Hindi to English', () {
-      expect(PlayerLanguage.normalizePreference('es'), 'en');
-      expect(PlayerLanguage.normalizePreference('hi'), 'en');
+    test('migrates unset or legacy English preferences to System', () {
+      expect(PlayerLanguage.migratePreference(), PlayerLanguage.system);
+      expect(
+        PlayerLanguage.migratePreference(legacyPreference: 'en'),
+        PlayerLanguage.system,
+      );
+    });
+
+    test('preserves an old explicit Arabic choice', () {
+      expect(PlayerLanguage.migratePreference(legacyPreference: 'ar'), 'ar');
+    });
+
+    test('migrates legacy Spanish and Hindi preferences to English', () {
+      expect(PlayerLanguage.migratePreference(legacyPreference: 'es'), 'en');
+      expect(PlayerLanguage.migratePreference(legacyPreference: 'hi'), 'en');
+    });
+
+    test('preserves new explicit English and Arabic choices', () {
+      expect(PlayerLanguage.migratePreference(savedPreference: 'en'), 'en');
+      expect(PlayerLanguage.migratePreference(savedPreference: 'ar'), 'ar');
+    });
+
+    test('normalizes unknown language codes to English', () {
       expect(PlayerLanguage.normalizePreference('unknown'), 'en');
     });
 

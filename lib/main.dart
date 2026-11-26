@@ -27,6 +27,12 @@ MIXPANEL_API_KEY=
   sharedPrefsSingleton = await SharedPreferencesSingleton.getInstance();
   await WellnessProvider.instance.initialize();
 
+  // Read before SettingsProvider persists its implicit English fallback.
+  final legacyLanguagePreference =
+      sharedPrefsSingleton.getString(PlayerLanguage.legacyPreferenceKey);
+  final savedLanguagePreference =
+      sharedPrefsSingleton.getString(PlayerLanguage.preferenceKey);
+
   final settings = SettingsProvider();
   await Future.wait<void>([
     settings.getCurrentThemeMode(),
@@ -58,9 +64,12 @@ MIXPANEL_API_KEY=
     dependencies.getAmbientMode(),
   ]);
 
-  // Migrate obsolete language preferences without changing System selection.
-  final language = PlayerLanguage.normalizePreference(settings.appLanguage);
+  final language = PlayerLanguage.migratePreference(
+    savedPreference: savedLanguagePreference,
+    legacyPreference: legacyLanguagePreference,
+  );
   if (language != settings.appLanguage) settings.appLanguage = language;
+  await sharedPrefsSingleton.setString(PlayerLanguage.preferenceKey, language);
 
   settings.completeHydration();
   runApp(
