@@ -62,12 +62,13 @@ class AppLanguageChooseScreen extends StatelessWidget {
                             ),
                       selected: settings.appLanguage == language.code,
                       onTap: () async {
+                        final localization = EasyLocalization.of(context)!;
                         settings.appLanguage = language.code;
                         await sharedPrefsSingleton.setString(
                           PlayerLanguage.preferenceKey,
                           language.code,
                         );
-                        EasyLocalization.of(context)!.setLocale(
+                        localization.setLocale(
                           PlayerLanguage.resolve(language.code),
                         );
                       },
