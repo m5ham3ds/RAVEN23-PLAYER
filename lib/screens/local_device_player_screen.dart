@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -942,7 +943,7 @@ class _LocalDeviceControlsState extends State<_LocalDeviceControls> {
       );
 
   Widget _landscapeActions() => Directionality(
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
