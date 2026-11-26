@@ -49,6 +49,7 @@ class Raven23PlayerApp extends StatelessWidget {
         supportedLocales: const [Locale('en'), Locale('ar')],
         path: 'packages/raven23/assets/translations',
         fallbackLocale: const Locale('en'),
+        saveLocale: false,
         startLocale: PlayerLanguage.resolve(settings.appLanguage),
         child: _LocalizedPlayerApp(settings: settings),
       ),
