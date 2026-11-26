@@ -13,6 +13,7 @@ import android.provider.MediaStore
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.m5ham3ds.raven23.player.playback.StreamingDndBridge
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -23,9 +24,11 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterActivity() {
     private val channelName = "com.m5ham3ds.raven23.player/media_library"
     private val mediaIoExecutor: ExecutorService = Executors.newFixedThreadPool(2)
+    private var streamingDndBridge: StreamingDndBridge? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        streamingDndBridge = StreamingDndBridge(this, flutterEngine.dartExecutor.binaryMessenger)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 try {
@@ -230,7 +233,19 @@ class MainActivity : FlutterActivity() {
         return !target.exists() || target.delete()
     }
 
+    override fun onResume() {
+        super.onResume()
+        streamingDndBridge?.setForeground(true)
+    }
+
+    override fun onPause() {
+        streamingDndBridge?.setForeground(false)
+        super.onPause()
+    }
+
     override fun onDestroy() {
+        streamingDndBridge?.dispose()
+        streamingDndBridge = null
         mediaIoExecutor.shutdown()
         super.onDestroy()
     }

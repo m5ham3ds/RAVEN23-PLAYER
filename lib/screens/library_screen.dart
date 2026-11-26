@@ -4,6 +4,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:raven23/design/app_palette.dart';
+import 'package:raven23/mobile/widgets/settings_kit.dart';
+import 'package:raven23/provider/settings_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../app.dart';
@@ -13,6 +19,8 @@ import '../services/playback_progress_store.dart';
 import '../services/transfer_service.dart';
 import '../widgets/app_press_feedback.dart';
 import 'player_screen.dart';
+import 'app_language_choose_screen.dart';
+import 'player_settings.dart';
 
 enum LibraryFilter { all, raven23, device }
 
@@ -350,7 +358,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                 child: TickerMode(
                   enabled: tab == _tab,
                   child: ColoredBox(
-                    color: Raven23PlayerApp.background,
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     child: FadeTransition(
                       opacity: tab == _tab
                           ? _fadeController
@@ -576,61 +584,188 @@ class _LibraryScreenState extends State<LibraryScreen>
   }
 
   Widget _settings(List<MediaItem> videos) {
+    final settings = context.watch<SettingsProvider>();
+    final palette = AppPalette.of(context);
+    final language = _currentLanguage(settings.appLanguage);
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 22, 18, 30),
       children: [
-        const Text('Settings', style: TextStyle(
-          fontSize: 27, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+        Text(
+          tr('settings'),
+          style: const TextStyle(
+            fontSize: 27,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
         const SizedBox(height: 5),
-        const Text('Manage your player and media library',
-            style: TextStyle(color: Colors.white54)),
+        Text(
+          'Manage your player and media library',
+          style: TextStyle(color: palette.mutedText),
+        ),
         const SizedBox(height: 22),
-        _SettingRow(icon: Icons.video_library_outlined, title: 'Media library',
-          subtitle: '${videos.length} videos indexed on this device',
-          onTap: _refresh, trailing: const Icon(Icons.refresh_rounded,
-              color: Colors.white54)),
+
+        // Match the supplied settings references: App language first.
+        Material(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(18),
+          clipBehavior: Clip.antiAlias,
+          child: ListRow(
+            icon: PhosphorIcons.translate(),
+            label: tr('app_language'),
+            showsNext: true,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipOval(
+                  child: Image.asset(
+                    'packages/raven23/assets/images/country_flags/' +
+                        language.flag + '.png',
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.language,
+                      color: palette.mutedText,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  tr(language.translationKey),
+                  style: TextStyle(color: palette.mutedText, fontSize: 15),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: palette.mutedText,
+                  size: 22,
+                ),
+              ],
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AppLanguageChooseScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+        SettingsGroup(
+          title: tr('appearance'),
+          children: [
+            ChoiceRow<String>(
+              icon: PhosphorIcons.moon(),
+              label: tr('theme_mode'),
+              value: settings.appTheme,
+              options: {
+                'dark': tr('dark'),
+                'light': tr('light'),
+                'amoled': tr('amoled'),
+              },
+              onChanged: (value) => settings.appTheme = value,
+            ),
+            ListRow(
+              icon: PhosphorIcons.play(),
+              label: tr('player_settings'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PlayerSettings(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // Existing Player settings are retained below the new RAVEN23 rows.
+        _SettingRow(
+          icon: Icons.video_library_outlined,
+          title: 'Media library',
+          subtitle: videos.length.toString() + ' videos indexed on this device',
+          onTap: _refresh,
+          trailing: const Icon(Icons.refresh_rounded, color: Colors.white54),
+        ),
         const SizedBox(height: 10),
-        _SettingRow(icon: Icons.folder_shared_outlined,
+        _SettingRow(
+          icon: Icons.folder_shared_outlined,
           title: 'RAVEN23 shared library',
           subtitle: 'Shared downloads and subtitle integration',
-          onTap: () => _selectTab(3)),
+          onTap: () => _selectTab(3),
+        ),
         const SizedBox(height: 10),
-        const _SettingRow(icon: Icons.history_rounded,
+        const _SettingRow(
+          icon: Icons.history_rounded,
           title: 'Playback history',
-          subtitle: 'Resume progress is stored privately on this device'),
+          subtitle: 'Resume progress is stored privately on this device',
+        ),
         const SizedBox(height: 10),
-        const _SettingRow(icon: Icons.swap_horiz_rounded, title: 'Transfer',
-          subtitle: 'Share a video together with its available subtitles'),
+        const _SettingRow(
+          icon: Icons.swap_horiz_rounded,
+          title: 'Transfer',
+          subtitle: 'Share a video together with its available subtitles',
+        ),
         const SizedBox(height: 28),
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF171313),
+            color: palette.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.2)),
+              color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.2),
+            ),
           ),
-          child: const Row(children: [
-            Icon(Icons.play_circle_fill_rounded,
-                color: Raven23PlayerApp.ravenRed, size: 34),
-            SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('RAVEN23 Player',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
-                SizedBox(height: 3),
-                Text('Your videos, one library',
-                    style: TextStyle(color: Colors.white54, fontSize: 12)),
-                SizedBox(height: 5),
-                Text('Version 0.1.0',
-                    style: TextStyle(color: Colors.white30, fontSize: 10)),
-              ],
-            )),
-          ]),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.play_circle_fill_rounded,
+                color: Raven23PlayerApp.ravenRed,
+                size: 34,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'RAVEN23 Player',
+                      style: TextStyle(
+                        color: palette.foreground,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Your videos, one library',
+                      style: TextStyle(color: palette.mutedText, fontSize: 12),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Version 0.1.0',
+                      style: TextStyle(color: palette.mutedText, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  ({String flag, String translationKey}) _currentLanguage(String code) {
+    return switch (code) {
+      'ar' => (flag: 'united-arab-emirates', translationKey: 'arabic'),
+      'es' => (flag: 'spain', translationKey: 'spanish'),
+      'hi' => (flag: 'india', translationKey: 'hindi'),
+      _ => (flag: 'united-kingdom', translationKey: 'english'),
+    };
   }
 
   Drawer _drawer() => Drawer(
@@ -1369,8 +1504,13 @@ class _FilterChip extends StatelessWidget {
   );
 }
 class _SettingRow extends StatelessWidget {
-  const _SettingRow({required this.icon, required this.title,
-    required this.subtitle, this.onTap, this.trailing});
+  const _SettingRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+    this.trailing,
+  });
 
   final IconData icon;
   final String title;
@@ -1379,35 +1519,50 @@ class _SettingRow extends StatelessWidget {
   final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => AppPressFeedback(
-    enabled: onTap != null,
-    child: Material(
-      color: const Color(0xFF171717),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return AppPressFeedback(
+      enabled: onTap != null,
+      child: Material(
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(children: [
-            Icon(icon, color: Raven23PlayerApp.ravenRed, size: 25),
-            const SizedBox(width: 13),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Row(
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(subtitle,
-                  style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                Icon(icon, color: Raven23PlayerApp.ravenRed, size: 25),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: palette.foreground,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(color: palette.mutedText, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                trailing ??
+                    Icon(Icons.chevron_right_rounded, color: palette.mutedText),
               ],
-            )),
-            trailing ?? const Icon(Icons.chevron_right_rounded,
-                color: Colors.white30),
-          ]),
+            ),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 class _DrawerItem extends StatelessWidget {
   const _DrawerItem({required this.icon, required this.title,
@@ -1438,70 +1593,124 @@ class _BottomBar extends StatelessWidget {
   final ValueChanged<int> onSelect;
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: SizedBox(height: 82, child: Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        Positioned.fill(top: 16, child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF101010),
-            border: Border(top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.12))),
-            boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 18, offset: const Offset(0, -5))],
-          ),
-          child: Row(children: [
-            Expanded(child: _NavItem(icon: Icons.home_rounded,
-              label: 'Home', active: selected == 0,
-              onTap: () => onSelect(0))),
-            Expanded(child: _NavItem(icon: Icons.video_library_rounded,
-              label: 'Videos', active: selected == 1,
-              onTap: () => onSelect(1))),
-            const SizedBox(width: 68),
-            Expanded(child: _NavItem(icon: Icons.folder_outlined,
-              label: 'Library', active: selected == 3,
-              onTap: () => onSelect(3))),
-            Expanded(child: _NavItem(icon: Icons.settings_outlined,
-              label: 'Settings', active: selected == 4,
-              onTap: () => onSelect(4))),
-          ]),
-        )),
-        Positioned(top: 0, child: Container(
-          width: 66, height: 66,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF343B), Color(0xFFB9000B)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight),
-            border: Border.all(color: const Color(0xFFFF8A8D), width: 1.5),
-            boxShadow: [BoxShadow(
-              color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.42),
-              blurRadius: 22, spreadRadius: 1)],
-          ),
-          child: AppPressFeedback(
-            child: Material(
-              color: Colors.transparent,
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () => onSelect(2),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 42),
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: 82,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned.fill(
+              top: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  border: Border(top: BorderSide(color: palette.hairline)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 18,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.home_rounded,
+                        label: 'Home',
+                        active: selected == 0,
+                        onTap: () => onSelect(0),
+                      ),
+                    ),
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.video_library_rounded,
+                        label: 'Videos',
+                        active: selected == 1,
+                        onTap: () => onSelect(1),
+                      ),
+                    ),
+                    const SizedBox(width: 68),
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.folder_outlined,
+                        label: 'Library',
+                        active: selected == 3,
+                        onTap: () => onSelect(3),
+                      ),
+                    ),
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        active: selected == 4,
+                        onTap: () => onSelect(4),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        )),
-      ],
-    )),
-  );
+            Positioned(
+              top: 0,
+              child: Container(
+                width: 66,
+                height: 66,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF343B), Color(0xFFB9000B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFFFF8A8D),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.42),
+                      blurRadius: 22,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: AppPressFeedback(
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => onSelect(2),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 42,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.icon, required this.label,
-    required this.active, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -1510,29 +1719,44 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? Raven23PlayerApp.ravenRed : Colors.white70;
+    final palette = AppPalette.of(context);
+    final color = active ? Raven23PlayerApp.ravenRed : palette.mutedText;
     return AppPressFeedback(
       child: InkWell(
         onTap: onTap,
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, color: color, size: 23),
-          const SizedBox(height: 3),
-          Text(label, style: TextStyle(color: color, fontSize: 10,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w500)),
-          const SizedBox(height: 3),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: active ? 24 : 0,
-            height: 2,
-            decoration: BoxDecoration(
-              color: Raven23PlayerApp.ravenRed,
-              borderRadius: BorderRadius.circular(2),
-              boxShadow: active ? [BoxShadow(
-                color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.6),
-                blurRadius: 8)] : null,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 23),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+              ),
             ),
-          ),
-        ]),
+            const SizedBox(height: 3),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: active ? 24 : 0,
+              height: 2,
+              decoration: BoxDecoration(
+                color: Raven23PlayerApp.ravenRed,
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: Raven23PlayerApp.ravenRed.withValues(alpha: 0.6),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

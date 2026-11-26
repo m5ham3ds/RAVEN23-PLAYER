@@ -8,6 +8,7 @@ dependencies:
   easy_localization: ^3.0.7
   flutter_dotenv: ^5.2.1
   provider: ^6.1.2
+  phosphor_flutter: ^2.1.0
   raven23:
     git:
       url: https://github.com/m5ham3ds/RAVEN23.git
