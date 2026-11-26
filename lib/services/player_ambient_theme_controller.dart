@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:raven23/models/media_item.dart' show MediaItem;
+import '../models/media_item.dart';
 import 'package:raven23/provider/app_dependency_provider.dart';
 import 'package:raven23/services/ambient_theme_service.dart';
 
