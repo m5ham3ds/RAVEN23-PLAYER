@@ -151,7 +151,7 @@ class PlayerAmbientThemeController {
           ..red += red
           ..green += green
           ..blue += blue
-          ..samples++;
+          ..samples += 1;
       }
     }
     if (buckets.isEmpty) return null;
