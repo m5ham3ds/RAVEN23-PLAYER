@@ -991,10 +991,10 @@ class _HeroBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: Colors.white12),
         ),
-        child: const Row(children: [
-          Icon(Icons.bolt_rounded, color: Raven23PlayerApp.ravenRed, size: 14),
-          SizedBox(width: 4),
-          Text(tr('player_play_your_way'), style: TextStyle(color: Colors.white70,
+        child: Row(children: [
+          const Icon(Icons.bolt_rounded, color: Raven23PlayerApp.ravenRed, size: 14),
+          const SizedBox(width: 4),
+          Text(tr('player_play_your_way'), style: const TextStyle(color: Colors.white70,
               fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
         ]),
       )),
@@ -1405,9 +1405,9 @@ class _SectionTitle extends StatelessWidget {
             foregroundColor: Raven23PlayerApp.ravenRed,
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(horizontal: 5)),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Text(tr('view_all'), style: TextStyle(fontWeight: FontWeight.w700)),
-            Icon(Icons.chevron_right_rounded, size: 18),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(tr('view_all'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            const Icon(Icons.chevron_right_rounded, size: 18),
           ]),
         ),
       ),
@@ -1546,7 +1546,7 @@ class _GridVideo extends StatelessWidget {
                       value: 'play', enabled: item.isPlayable,
                       child: Text(tr('play')),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'transfer', child: Text(tr('player_transfer'))),
                   ],
                 )),
