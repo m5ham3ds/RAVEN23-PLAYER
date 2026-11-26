@@ -961,25 +961,25 @@ class _HeroBanner extends StatelessWidget {
         left: 20,
         top: 28,
         width: MediaQuery.sizeOf(context).width * 0.52,
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text.rich(TextSpan(children: [
+            const Text.rich(TextSpan(children: [
               TextSpan(text: 'RAVEN'),
               TextSpan(text: '23', style: TextStyle(
                   color: Raven23PlayerApp.ravenRed)),
             ]), style: TextStyle(color: Colors.white, fontSize: 29,
                 fontWeight: FontWeight.w900, height: 1,
                 letterSpacing: -1.2, fontStyle: FontStyle.italic)),
-            Text('Player', style: TextStyle(color: Colors.white, fontSize: 28,
+            const Text('Player', style: TextStyle(color: Colors.white, fontSize: 28,
                 fontWeight: FontWeight.w900, height: 1.05,
                 fontStyle: FontStyle.italic, letterSpacing: -1)),
-            SizedBox(height: 12),
-            Text(tr('player_tagline'), style: TextStyle(
+            const SizedBox(height: 12),
+            Text(tr('player_tagline'), style: const TextStyle(
                 color: Colors.white70, fontSize: 13,
                 fontWeight: FontWeight.w500)),
-            SizedBox(height: 12),
-            SizedBox(width: 54, child: Divider(
+            const SizedBox(height: 12),
+            const SizedBox(width: 54, child: Divider(
                 color: Raven23PlayerApp.ravenRed, thickness: 4, height: 4)),
           ],
         ),
