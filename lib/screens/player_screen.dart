@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:raven23/constants/app_constants.dart';
 import 'package:raven23/models/movie_stream_metadata.dart';
@@ -17,6 +19,7 @@ import '../models/media_item.dart';
 import '../services/android_media_library.dart';
 import '../services/player_ambient_theme_controller.dart';
 import '../services/playback_progress_store.dart';
+import '../services/transfer_service.dart';
 import '../widgets/app_press_feedback.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -25,11 +28,13 @@ class PlayerScreen extends StatefulWidget {
     required this.item,
     required this.progressStore,
     required this.initialPositionMs,
+    this.deviceVideos = const <MediaItem>[],
   });
 
   final MediaItem item;
   final PlaybackProgressStore progressStore;
   final int initialPositionMs;
+  final List<MediaItem> deviceVideos;
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -39,6 +44,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final AndroidMediaLibrary _library = AndroidMediaLibrary();
   final PlayerAmbientThemeController _ambientTheme =
       PlayerAmbientThemeController();
+  late final TransferService _transfer = TransferService(_library);
+  int _lastLocalPositionMs = 0;
+  int _lastLocalDurationMs = 0;
+
+  bool get _isDeviceLocalPlayback =>
+      widget.item.origin == MediaOrigin.deviceLocal;
   bool _preparing = true;
   String? _error;
   String? _offlineFilePath;
@@ -301,6 +312,218 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return metadata;
   }
 
+  void _saveDeviceLocalProgress(int positionMs, int durationMs) {
+    if (!_isDeviceLocalPlayback || durationMs <= 0) return;
+    _lastLocalPositionMs = positionMs;
+    _lastLocalDurationMs = durationMs;
+    unawaited(
+      widget.progressStore.write(
+        widget.item,
+        positionMs: positionMs,
+        durationMs: durationMs,
+      ),
+    );
+  }
+
+  Future<void> _openLocalVideo(MediaItem item) async {
+    if (!_isDeviceLocalPlayback ||
+        item.origin != MediaOrigin.deviceLocal ||
+        !item.isPlayable ||
+        item.id == widget.item.id) {
+      return;
+    }
+    if (_lastLocalDurationMs > 0) {
+      await widget.progressStore.write(
+        widget.item,
+        positionMs: _lastLocalPositionMs,
+        durationMs: _lastLocalDurationMs,
+      );
+    }
+    final saved = await widget.progressStore.read(item);
+    if (!mounted) return;
+    await Navigator.of(context, rootNavigator: true)
+        .pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PlayerScreen(
+          item: item,
+          deviceVideos: widget.deviceVideos,
+          progressStore: widget.progressStore,
+          initialPositionMs: saved?.positionMs ?? 0,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLocalVideos() async {
+    if (!_isDeviceLocalPlayback || !mounted) return;
+    final videos = widget.deviceVideos
+        .where((item) =>
+            item.origin == MediaOrigin.deviceLocal && item.isPlayable)
+        .toList(growable: false);
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: const Color(0xFF17191F),
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: .72,
+        minChildSize: .4,
+        maxChildSize: .92,
+        expand: false,
+        builder: (context, scrollController) => SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        tr('local_player_device_videos'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      videos.length.toString(),
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: videos.isEmpty
+                    ? Center(
+                        child: Text(
+                          tr('local_player_no_videos'),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        itemCount: videos.length,
+                        separatorBuilder: (_, __) => const Divider(
+                          color: Colors.white12,
+                          height: 1,
+                        ),
+                        itemBuilder: (context, index) {
+                          final video = videos[index];
+                          final selected = video.id == widget.item.id;
+                          return InkWell(
+                            onTap: () async {
+                              Navigator.pop(sheetContext);
+                              await _openLocalVideo(video);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 9,
+                              ),
+                              child: Row(
+                                children: [
+                                  _LocalVideoThumbnail(
+                                    library: _library,
+                                    item: video,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          video.title,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: selected
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          video.relativePath,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        if (video.durationMs > 0) ...[
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            video.formattedDuration,
+                                            style: const TextStyle(
+                                              color: Colors.white38,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  if (selected)
+                                    const Padding(
+                                      padding: EdgeInsetsDirectional.only(
+                                        start: 8,
+                                      ),
+                                      child: Icon(
+                                        Icons.check_circle_rounded,
+                                        color: Colors.redAccent,
+                                      ),
+                                    )
+                                  else
+                                    const Padding(
+                                      padding: EdgeInsetsDirectional.only(
+                                        start: 8,
+                                      ),
+                                      child: Icon(
+                                        Icons.play_circle_outline_rounded,
+                                        color: Colors.white54,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareLocalVideo() async {
+    if (!_isDeviceLocalPlayback) return;
+    try {
+      await _transfer.share(widget.item);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            tr(
+              'local_player_share_failed',
+              namedArgs: {'error': error.toString()},
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _playDownloadedEpisode(EpisodeMetadata episode) async {
     final target = _seriesDownloads.where((item) {
       return item.isPlayable &&
@@ -321,6 +544,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       MaterialPageRoute<void>(
         builder: (_) => PlayerScreen(
           item: target,
+          deviceVideos: widget.deviceVideos,
           progressStore: widget.progressStore,
           initialPositionMs: saved?.positionMs ?? 0,
         ),
@@ -464,6 +688,74 @@ class _PlayerScreenState extends State<PlayerScreen> {
       offlineFilePath: _offlineFilePath,
       onOfflineEpisodeSelected:
           isTv && _isPrimaryDownload ? _playDownloadedEpisode : null,
+      deviceLocalPlayback: _isDeviceLocalPlayback,
+      deviceLocalUri: _isDeviceLocalPlayback ? sourceUri : null,
+      onDeviceLocalProgress:
+          _isDeviceLocalPlayback ? _saveDeviceLocalProgress : null,
+      onDeviceLocalPlaylistTap:
+          _isDeviceLocalPlayback ? () => unawaited(_showLocalVideos()) : null,
+      onDeviceLocalShareTap:
+          _isDeviceLocalPlayback ? () => unawaited(_shareLocalVideo()) : null,
     );
   }
+}
+
+
+class _LocalVideoThumbnail extends StatefulWidget {
+  const _LocalVideoThumbnail({
+    required this.library,
+    required this.item,
+  });
+
+  final AndroidMediaLibrary library;
+  final MediaItem item;
+
+  @override
+  State<_LocalVideoThumbnail> createState() => _LocalVideoThumbnailState();
+}
+
+class _LocalVideoThumbnailState extends State<_LocalVideoThumbnail> {
+  late Future<Uint8List?> _thumbnail;
+
+  @override
+  void initState() {
+    super.initState();
+    _thumbnail = widget.library.videoThumbnail(widget.item.contentUri);
+  }
+
+  @override
+  void didUpdateWidget(covariant _LocalVideoThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.contentUri != widget.item.contentUri) {
+      _thumbnail = widget.library.videoThumbnail(widget.item.contentUri);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(9),
+        child: SizedBox(
+          width: 104,
+          height: 66,
+          child: FutureBuilder<Uint8List?>(
+            future: _thumbnail,
+            builder: (context, snapshot) {
+              final bytes = snapshot.data;
+              if (bytes != null && bytes.isNotEmpty) {
+                return Image.memory(bytes, fit: BoxFit.cover);
+              }
+              return const ColoredBox(
+                color: Color(0xFF272B34),
+                child: Center(
+                  child: Icon(
+                    Icons.movie_outlined,
+                    color: Colors.white54,
+                    size: 28,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
 }
