@@ -22,7 +22,6 @@ import '../services/playback_progress_store.dart';
 import '../services/transfer_service.dart';
 import '../widgets/app_press_feedback.dart';
 import 'player_screen.dart';
-import 'local_device_player_screen.dart';
 import '../utils/device_local_media.dart';
 import 'app_language_choose_screen.dart';
 import 'player_settings.dart';
@@ -175,20 +174,17 @@ class _LibraryScreenState extends State<LibraryScreen>
     final scannedVideos = await _load ?? const <MediaItem>[];
     if (!mounted || _progress == null) return;
 
-    final Widget player = item.origin == MediaOrigin.deviceLocal
-        ? LocalDevicePlayerScreen(
-            item: item,
-            deviceVideos: deviceLocalMedia(scannedVideos),
-            progressStore: _progress!,
-            initialPositionMs: saved?.positionMs ?? 0,
-          )
-        : PlayerScreen(
-            item: item,
-            progressStore: _progress!,
-            initialPositionMs: saved?.positionMs ?? 0,
-          );
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => player),
+      MaterialPageRoute<void>(
+        builder: (_) => PlayerScreen(
+          item: item,
+          deviceVideos: item.origin == MediaOrigin.deviceLocal
+              ? deviceLocalMedia(scannedVideos)
+              : const <MediaItem>[],
+          progressStore: _progress!,
+          initialPositionMs: saved?.positionMs ?? 0,
+        ),
+      ),
     );
     if (mounted) setState(() => _recentLoad = _load!.then(_loadRecent));
   }
