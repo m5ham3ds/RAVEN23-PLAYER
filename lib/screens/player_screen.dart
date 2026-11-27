@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:raven23/constants/app_constants.dart';
 import 'package:raven23/models/movie_stream_metadata.dart';
@@ -341,6 +340,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
     final saved = await widget.progressStore.read(item);
     if (!mounted) return;
+    // BetterPlayer can place its fullscreen route above this screen. Close
+    // that route before replacing the owning PlayerScreen.
+    if (ModalRoute.of(context)?.isCurrent != true) {
+      await Navigator.of(context, rootNavigator: true).maybePop();
+      if (!mounted) return;
+    }
     await Navigator.of(context, rootNavigator: true)
         .pushReplacement<void, void>(
       MaterialPageRoute<void>(
